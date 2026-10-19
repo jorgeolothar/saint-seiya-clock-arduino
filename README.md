@@ -4,6 +4,11 @@
 
 ## ✨ What It Does
 
+[![Watch Saint Seiya Clock Arduino](https://youtube.com)](https://www.youtube.com/watch?v=aKjive5c41w)
+
+
+
+
 Each LED ring acts as a **12-hour clock face**, with one LED representing each hour.
 
 A flickering **"flame"** moves around the ring, advancing one LED per hour and completing the cycle twice a day:
