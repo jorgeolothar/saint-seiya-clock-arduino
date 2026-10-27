@@ -49,8 +49,8 @@ const CRGB BLACK       = CRGB(0, 0, 0);        // off. As a trail color: no trai
 // There is no hue to pick: each LED takes its hue from its place on the
 // ring. Use these only in WHEEL_COLORS flames (BLACK works there too).
 const CRGB WHEEL_PALE  = wheelColor(100, 40);  // bright and pale
-const CRGB WHEEL_DEEP  = wheelColor(80,   0);  // full color, a bit dim
-const CRGB WHEEL_FULL  = wheelColor(100,  0);  // full color, full brightness
+const CRGB WHEEL_DEEP  = wheelColor(80, 0);    // full color, a bit dim
+const CRGB WHEEL_FULL  = wheelColor(100, 0);   // full color, full brightness
 
 // =====================================================================
 //  2. FLAMES
@@ -100,9 +100,10 @@ const Flame SPARK         = { NO_FADE,     SPARK_WHITE, EARLY_FADE,  BLACK,     
 const Flame SOLID         = { NO_FADE,     AMBER,       NO_FADE,     AMBER,        0,      FIXED_COLORS };
 
 // A rainbow around the ring: pale flame, deep colored trail
-const Flame HUE_WHEEL     = { SMOOTH_FADE, WHEEL_DEEP,  SMOOTH_FADE, WHEEL_PALE,  30,      WHEEL_COLORS };
+const Flame HUE_WHEEL     = { SMOOTH_FADE, WHEEL_PALE,  SMOOTH_FADE, WHEEL_DEEP,  30,      WHEEL_COLORS };
 
-// An orange flame that burns down to black, so only the flame is lit
+// An orange flame that burns out quickly to black. After COOL, it is the
+// countdown of the Sanctuary fire clock.
 const Flame EMBER         = { SMOOTH_FADE, DEEP_ORANGE, EARLY_FADE,  BLACK,       80,      FIXED_COLORS };
 
 // An icy flame that melts away to black, with a gentle cold shimmer
