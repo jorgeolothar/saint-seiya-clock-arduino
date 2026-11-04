@@ -65,7 +65,7 @@ At about 3:30 in the afternoon:
 - 🔥 **The flame:** the one burning out right now, on the 3 o'clock LED.
 - 🟦 **Ahead of the flame:** the blue flames still burning.
 
-> 🟧 The orange glow as each flame burns out is an extra touch, not from the series. For an all-blue countdown, change `DEEP_ORANGE` to `ICE_BLUE` in the `EMBER` line of `Flames.h`.
+> 🟧 The orange glow as each flame burns out is an extra touch, not from the series. For an all-blue countdown, change `DEEP_ORANGE` to `ICE_BLUE` in the `EMBER_COLORS` line of `Flames.h`.
 
 ## 🔘 Button Controls
 
@@ -77,16 +77,17 @@ At about 3:30 in the afternoon:
 
 ## 🚀 Getting Started
 
-1. Download the **[FlameClock](FlameClock/)** folder. Keep its three files together:
+1. Download the **[FlameClock](FlameClock/)** folder. Keep its files together:
 
    | File | What's in it |
    |---|---|
    | [FlameClock.ino](FlameClock/FlameClock.ino) | Your clocks and settings. Open this one. |
-   | [Flames.h](FlameClock/Flames.h) | The colors and flames. |
-   | [FlameTypes.h](FlameClock/FlameTypes.h) | The building blocks. No need to open it. |
+   | [Flames.h](FlameClock/Flames.h) | The flames. |
+   | [Colors.h](FlameClock/Colors.h) | The named colors the flames use. |
+   | [LookTypes.h](FlameClock/LookTypes.h), [ClockTypes.h](FlameClock/ClockTypes.h), [Effects.h](FlameClock/Effects.h), [Power.h](FlameClock/Power.h) | The building blocks. No need to open them. |
 
 2. Install the libraries (see [Required Libraries](#-required-libraries)).
-3. Open **FlameClock.ino** in the Arduino IDE. The other two files show up as tabs.
+3. Open **FlameClock.ino** in the Arduino IDE. The other files show up as tabs.
 4. Set up your rings in **PART 1** (see below), then upload.
 
 ## ⏰ Setting Up Your Clocks
@@ -128,37 +129,42 @@ These flames come built in. The number is what a ring shows when you pick it wit
 
 ### ✏️ Making your own flame
 
-Flames live in **Flames.h**. Each one reads like a sentence, in the order things happen on an LED:
+Flames live in **Flames.h**. Each one is two lines. The first is its **color list**, in the order the colors show on an LED, with how to fade into each one:
 
 ```cpp
-//                          fade in      flame color  fade out     trail color  flicker% colors
-const Flame FIRE          = { SMOOTH_FADE, ORANGE,      SMOOTH_FADE, RED,         70,      FIXED_COLORS };
+const ColorStop FIRE_COLORS[] = { { SMOOTH_FADE, ORANGE }, { SMOOTH_FADE, RED } };
+const Look FIRE               = { FLAME, FIRE_COLORS, 70, FIXED_COLORS };
 ```
 
 > "FIRE fades smoothly into ORANGE, then fades smoothly into a RED trail, with 70% flicker, using the colors as written."
 
+**The color list:** the LED fades from its old color into the 1st color, then into the 2nd, and so on. Each color gets an equal part of the step. The **last color is the trail**, what the flame leaves behind (`BLACK` = no trail). The list can be any length: with 2 colors, the 1st is the flame at its brightest, halfway through the step.
+
+**The second line:**
+
 | Value | What it means |
 |---|---|
-| **Fade in** | How the flame appears over the LED's old color |
-| **Flame color** | The flame at its brightest, halfway through |
-| **Fade out** | How the flame turns into its trail |
-| **Trail color** | What the flame leaves behind. `BLACK` = no trail |
-| **Flicker %** | `0` = steady, `100` = strongest flicker |
+| **Effect** | `FLAME` = flickers. `GRADIENT` = steady |
+| **Color list** | The name of the first line |
+| **Flicker %** | `0` = steady, `100` = strongest flicker. `GRADIENT` ignores it |
 | **Colors** | `FIXED_COLORS` = the colors as written. `WHEEL_COLORS` = a rainbow around the ring |
 
 **The fades:**
 
 | Fade | What it does |
 |---|---|
-| `NO_FADE` | No fade. The flame appears at once, or stays until it leaves the LED |
+| `SNAP` | Switches to the color at once, at the start of its part |
+| `HOLD` | Keeps the color before, and switches at the end of its part |
 | `STEADY_FADE` | Changes at an even pace |
 | `SMOOTH_FADE` | Gentle at the start and at the end |
 | `EARLY_FADE` | Most of the change happens early |
 | `LATE_FADE` | Most of the change happens late |
 
-> 💡 **Tip:** how one flame takes over from the other is set by the arriving flame's **fade in**. A flame with `NO_FADE` (like `SOLID`) replaces the other flame's trail at once.
+> 💡 **Tip:** how one flame takes over from the other is set by the fade of the arriving flame's **first color**. A flame starting with `SNAP` (like `SPARK`) replaces the other flame's trail at once.
 
-**Colors** are named at the top of `Flames.h`, written as `CRGB(red, green, blue)` with numbers from 0 to 255:
+⚠️ **Flames from an older version:** `NO_FADE` is gone. As a fade in it becomes `SNAP`, as a fade out it becomes `HOLD`.
+
+**Colors** are named in `Colors.h`, written as `CRGB(red, green, blue)` with numbers from 0 to 255:
 
 ```cpp
 const CRGB ORANGE = CRGB(255, 110, 0);
@@ -197,6 +203,20 @@ In **PART 2** of `FlameClock.ino`, set `BEHAVIOR` to one of these:
 | `MODE_FREEZE` | Holds still at one moment, to look closely at the colors |
 
 Set it back to `MODE_REGULAR` when you're done.
+
+### 🧵 Test strip
+
+A few LEDs on pin **D10** can play one look over and over, to try out looks or check new LEDs. Remove the two slashes in front of `#define USE_TEST_STRIP` in **PART 2**, and pick the look, the number of LEDs and the cycle length below it. For LEDs other than WS2812B (5mm LEDs are often PL9823 or APA106, with `RGB` color order), change `TEST_STRIP_CHIP` and `TEST_STRIP_ORDER` in **PART 3**. Play `SOLID`: it should look amber, not green.
+
+## ⚡ Power Limit
+
+The clock estimates how much current its LEDs draw and dims them if it's more than the limit you set in **PART 3**:
+
+```cpp
+const PowerLimit RING_POWER = { 400, 20 };   // most milliamps, milliamps per color
+```
+
+**Milliamps per color** is what red, green or blue of one LED draws at full (about 20 for WS2812B; check your LEDs' datasheet). This is an estimate, not a measurement: keep the fuses in your wiring.
 
 ### 🎯 Finding the top LED
 
@@ -271,3 +291,6 @@ Install these through:
 - Can operate **without an RTC module**, using a built-in software clock
 - **Test modes** for checking colors, timing and the top LED, and a sped-up day for demos
 - Supports **1 to 4 LED rings**, each with its own top LED
+- Flames are **color lists of any length**, built from parts that can drive other LED scenes
+- A **power limit** that dims the LEDs to stay within the power supply's current
+- A **test strip** for trying out looks on separate LEDs

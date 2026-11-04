@@ -1,129 +1,115 @@
 // =====================================================================
-//  FLAME CLOCK: THE COLORS AND FLAMES
+//  FLAME CLOCK: THE FLAMES
 // =====================================================================
 //
-//  A flame is a "look" for one lap around the ring. The clocks in
-//  FlameClock.ino pick their flames by name from this file.
+//  A flame is the look of one lap around the ring. The clocks in
+//  FlameClock.ino pick their flames by name from this file. The colors
+//  they use are named in Colors.h.
 //
 //  Keep this file in the same folder as FlameClock.ino. The Arduino IDE
 //  shows it as a tab called Flames.h.
 //
-//  This file has three parts:
-//    1. COLORS ........ named colors, used by the flames
-//    2. FLAMES ........ the flames themselves
-//    3. FLAME_LIST .... the flames the button steps through
+//  This file has two parts:
+//    1. FLAMES ........ the flames themselves
+//    2. FLAME_LIST .... the flames the button steps through
 //
 // =====================================================================
 
 #pragma once
-#include "FlameTypes.h"   // The building blocks. Do not change this line.
+#include "LookTypes.h"   // The building blocks. Do not change these two lines.
+#include "Colors.h"
 
 // =====================================================================
-//  1. COLORS
-//  Each color is CRGB(red, green, blue), with numbers from 0 to 255.
-//  Tip: search the web for "RGB color picker" to find the numbers you
-//  want. LEDs often look a bit different from a screen, so use
-//  MODE_COLOR_TEST (PART 2 of FlameClock.ino) to see your colors on the
-//  real LEDs. Changing a color here changes every flame that uses it.
-// =====================================================================
-
-const CRGB ORANGE      = CRGB(255, 110, 0);
-const CRGB DEEP_ORANGE = CRGB(255, 90, 0);
-const CRGB RED         = CRGB(255, 30, 0);     // a warm red
-const CRGB AMBER       = CRGB(255, 140, 40);
-const CRGB CANDLE_GLOW = CRGB(50, 15, 0);      // a very faint amber
-const CRGB SPARK_WHITE = CRGB(255, 230, 150);  // a hot, slightly yellow white
-const CRGB ICE_WHITE   = CRGB(200, 245, 255);
-const CRGB ICE_BLUE    = CRGB(0, 191, 255);
-const CRGB NEON_PINK   = CRGB(255, 0, 160);
-const CRGB DIM_TEAL    = CRGB(0, 60, 80);
-const CRGB BLACK       = CRGB(0, 0, 0);        // off. As a trail color: no trail
-
-// Colors for WHEEL_COLORS flames, written as:
+//  1. FLAMES
+//  A flame is written in two lines. The first is its color list, in the
+//  order the colors show on each LED, and how to fade into each one:
 //
-//   wheelColor(brightness %, paleness %)
+//    const ColorStop FIRE_COLORS[] = { { SMOOTH_FADE, ORANGE }, { SMOOTH_FADE, RED } };
 //
-//   brightness .. 0 = off, 100 = full brightness
-//   paleness .... 0 = full color, 100 = white
+//  The second puts the colors to use:
 //
-// There is no hue to pick: each LED takes its hue from its place on the
-// ring. Use these only in WHEEL_COLORS flames (BLACK works there too).
-const CRGB WHEEL_PALE  = wheelColor(100, 40);  // bright and pale
-const CRGB WHEEL_DEEP  = wheelColor(80, 0);    // full color, a bit dim
-const CRGB WHEEL_FULL  = wheelColor(100, 0);   // full color, full brightness
-
-// =====================================================================
-//  2. FLAMES
-//  A flame is written in the order things happen on each LED, so it
-//  reads like a sentence:
-//
-//    const Flame FIRE = { SMOOTH_FADE, ORANGE, SMOOTH_FADE, RED, 70, FIXED_COLORS };
+//    const Look FIRE = { FLAME, FIRE_COLORS, 70, FIXED_COLORS };
 //
 //    "FIRE fades smoothly into ORANGE, then fades smoothly into a RED
 //     trail, with 70% flicker, using the colors as written."
 //
-//  The six values, in order:
-//    1. fade in ...... how the flame appears over the LED's old color
-//    2. flame color .. the flame at its brightest, halfway through its step
-//    3. fade out ..... how the flame turns into its trail
-//    4. trail color .. what the flame leaves behind (BLACK = no trail)
-//    5. flicker % .... 0 = steady, 100 = strongest
-//    6. colors ....... FIXED_COLORS = the colors as written
+//  The color list:
+//    - The LED fades from its old color into the 1st color, then into
+//      the 2nd, and so on. Each color gets an equal part of the step.
+//    - The last color is the trail: what the flame leaves behind.
+//      BLACK = no trail.
+//    - It can be any length. With 2 colors, the 1st is the flame at its
+//      brightest, halfway through the step. With 1, the LED just
+//      changes into that color.
+//
+//  The four values of the second line, in order:
+//    1. effect ....... FLAME = flickers, GRADIENT = steady
+//    2. color list ... the name of the first line
+//    3. flicker % .... 0 = steady, 100 = strongest. GRADIENT ignores it.
+//    4. colors ....... FIXED_COLORS = the colors as written
 //                      WHEEL_COLORS = a rainbow around the ring (each LED
 //                      takes its hue from its place on the ring). Use the
-//                      wheelColor() colors from part 1 with it.
+//                      wheelColor() colors from Colors.h with it.
 //
 //  The fades:
-//    NO_FADE ....... no fade: the flame appears at once (fade in), or
-//                    stays until its step ends (fade out)
+//    SNAP .......... switches to the color at once, at the start of its part
+//    HOLD .......... keeps the color before, and switches at the end of its part
 //    STEADY_FADE ... changes at an even pace
 //    SMOOTH_FADE ... gentle at the start and at the end
 //    EARLY_FADE .... most of the change happens early
 //    LATE_FADE ..... most of the change happens late
 //
-//  To make your own flame, copy a line and give it a new name. Add the
-//  name to FLAME_LIST below if the button should be able to pick it.
+//  To make your own flame, copy two lines and give them a new name. Add
+//  the name to FLAME_LIST below if the button should be able to pick it.
 // =====================================================================
 
-//                          fade in      flame color  fade out     trail color  flicker% colors
-
 // Orange flame with a red trail
-const Flame FIRE          = { SMOOTH_FADE, ORANGE,      SMOOTH_FADE, RED,         70,      FIXED_COLORS };
+const ColorStop FIRE_COLORS[]          = { { SMOOTH_FADE, ORANGE },      { SMOOTH_FADE, RED } };
+const Look FIRE                        = { FLAME, FIRE_COLORS, 70, FIXED_COLORS };
 
 // Icy white flame with an ice blue trail
-const Flame COOL          = { SMOOTH_FADE, ICE_WHITE,   SMOOTH_FADE, ICE_BLUE,    70,      FIXED_COLORS };
+const ColorStop COOL_COLORS[]          = { { SMOOTH_FADE, ICE_WHITE },   { SMOOTH_FADE, ICE_BLUE } };
+const Look COOL                        = { FLAME, COOL_COLORS, 70, FIXED_COLORS };
 
 // A bright flash that dies out quickly and leaves no trail
-const Flame SPARK         = { NO_FADE,     SPARK_WHITE, EARLY_FADE,  BLACK,       90,      FIXED_COLORS };
+const ColorStop SPARK_COLORS[]         = { { SNAP, SPARK_WHITE },        { EARLY_FADE, BLACK } };
+const Look SPARK                       = { FLAME, SPARK_COLORS, 90, FIXED_COLORS };
 
 // Steady amber, no fading and no flicker
-const Flame SOLID         = { NO_FADE,     AMBER,       NO_FADE,     AMBER,        0,      FIXED_COLORS };
+const ColorStop SOLID_COLORS[]         = { { SNAP, AMBER } };
+const Look SOLID                       = { GRADIENT, SOLID_COLORS, 0, FIXED_COLORS };
 
 // A rainbow around the ring: pale flame, deep colored trail
-const Flame HUE_WHEEL     = { SMOOTH_FADE, WHEEL_PALE,  SMOOTH_FADE, WHEEL_DEEP,  30,      WHEEL_COLORS };
+const ColorStop HUE_WHEEL_COLORS[]     = { { SMOOTH_FADE, WHEEL_PALE },  { SMOOTH_FADE, WHEEL_DEEP } };
+const Look HUE_WHEEL                   = { FLAME, HUE_WHEEL_COLORS, 30, WHEEL_COLORS };
 
 // An orange flame that burns out quickly to black. After COOL, it is the
 // countdown of the Sanctuary fire clock.
-const Flame EMBER         = { SMOOTH_FADE, DEEP_ORANGE, EARLY_FADE,  BLACK,       80,      FIXED_COLORS };
+const ColorStop EMBER_COLORS[]         = { { SMOOTH_FADE, DEEP_ORANGE }, { EARLY_FADE, BLACK } };
+const Look EMBER                       = { FLAME, EMBER_COLORS, 80, FIXED_COLORS };
 
 // An icy flame that melts away to black, with a gentle cold shimmer
-const Flame FROST         = { SMOOTH_FADE, ICE_WHITE,   SMOOTH_FADE, BLACK,       30,      FIXED_COLORS };
+const ColorStop FROST_COLORS[]         = { { SMOOTH_FADE, ICE_WHITE },   { SMOOTH_FADE, BLACK } };
+const Look FROST                       = { FLAME, FROST_COLORS, 30, FIXED_COLORS };
 
 // A warm candle that leaves a faint glow behind it
-const Flame CANDLE        = { SMOOTH_FADE, AMBER,       SMOOTH_FADE, CANDLE_GLOW, 50,      FIXED_COLORS };
+const ColorStop CANDLE_COLORS[]        = { { SMOOTH_FADE, AMBER },       { SMOOTH_FADE, CANDLE_GLOW } };
+const Look CANDLE                      = { FLAME, CANDLE_COLORS, 50, FIXED_COLORS };
 
 // Pink neon that hardly flickers, holds its color, then turns into a dim teal trail
-const Flame NEON          = { STEADY_FADE, NEON_PINK,   LATE_FADE,   DIM_TEAL,     5,      FIXED_COLORS };
+const ColorStop NEON_COLORS[]          = { { STEADY_FADE, NEON_PINK },   { LATE_FADE, DIM_TEAL } };
+const Look NEON                        = { FLAME, NEON_COLORS, 5, FIXED_COLORS };
 
 // A rainbow around the ring where each LED burns its own color down to black
-const Flame RAINBOW_EMBER = { SMOOTH_FADE, WHEEL_FULL,  STEADY_FADE, BLACK,       60,      WHEEL_COLORS };
+const ColorStop RAINBOW_EMBER_COLORS[] = { { SMOOTH_FADE, WHEEL_FULL },  { STEADY_FADE, BLACK } };
+const Look RAINBOW_EMBER               = { FLAME, RAINBOW_EMBER_COLORS, 60, WHEEL_COLORS };
 
 // =====================================================================
-//  3. FLAME_LIST: THE FLAMES THE BUTTON STEPS THROUGH
+//  2. FLAME_LIST: THE FLAMES THE BUTTON STEPS THROUGH
 //  Holding the button moves to the next flame in this list, in this
 //  order. The number a ring blinks is the flame's place in this list.
 //  Up to 12 flames. Write each name with a & in front.
 // =====================================================================
 
-const Flame *const FLAME_LIST[] = { &FIRE, &COOL, &SPARK, &SOLID, &HUE_WHEEL,
-                                    &EMBER, &FROST, &CANDLE, &NEON, &RAINBOW_EMBER };
+const Look *const FLAME_LIST[] = { &FIRE, &COOL, &SPARK, &SOLID, &HUE_WHEEL,
+                                   &EMBER, &FROST, &CANDLE, &NEON, &RAINBOW_EMBER };

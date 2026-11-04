@@ -38,24 +38,32 @@
 //    RTClib ........ only if you use a clock module
 //
 //  FILES
-//  Keep these three files together in a folder called FlameClock. The
-//  Arduino IDE shows them as tabs.
+//  Keep these files together in a folder called FlameClock. The Arduino
+//  IDE shows them as tabs.
 //    FlameClock.ino ... this file: your clocks and settings
-//    Flames.h ......... the colors and flames
-//    FlameTypes.h ..... the building blocks (no need to open it)
+//    Flames.h ......... the flames
+//    Colors.h ......... the named colors the flames use
+//  The building blocks (no need to open them):
+//    LookTypes.h ...... what a look (a flame) is
+//    ClockTypes.h ..... what a clock (a ring) is
+//    Effects.h ........ how looks are drawn
+//    Power.h .......... the power limit
 //
 //  NEW IN THIS VERSION
-//  Each ring has its own two flames, and you can make your own flames in
-//  Flames.h. They replace the 4 fill modes: a flame with a black trail
-//  works like the old "no trail" modes.
+//  A flame is now a list of colors of any length, so the same building
+//  blocks can drive other LED scenes later. The fade NO_FADE is now SNAP
+//  (when fading in) or HOLD (when fading out). The LEDs can also be kept
+//  within a current limit (PART 3).
 //
 // =====================================================================
 
-// Do not change these four lines
+// Do not change these lines
 #include <FastLED.h>
 #include <EEPROM.h>
-#include "FlameTypes.h"
+#include "ClockTypes.h"
 #include "Flames.h"
+#include "Effects.h"
+#include "Power.h"
 
 // =====================================================================
 //  PART 1: YOUR CLOCKS
@@ -148,6 +156,16 @@ const uint32_t ACCELERATED_SPEED = 60;
 // Tools > Serial Monitor (set to 115200 baud). Handy when asking for help.
 const bool PRINT_TO_SERIAL = false;
 
+// A test strip: a few LEDs on their own pin, playing one look over and
+// over, the way the temple scenes will. Handy for trying out looks, and
+// for checking new LEDs (see TEST_STRIP_ORDER in PART 3). To use it,
+// remove the two slashes in front of the next line, and wire the LEDs'
+// DIN to pin D10 (TEST_STRIP_PIN in PART 3).
+// #define USE_TEST_STRIP
+const Look &TEST_STRIP_LOOK = FIRE;            // Any look from Flames.h
+const uint8_t TEST_STRIP_LEDS = 3;             // How many LEDs
+const uint32_t TEST_STRIP_CYCLE_MS = 2000;     // One cycle of the look (2000 = 2 seconds)
+
 // =====================================================================
 //  PART 3: MORE SETTINGS
 //  Most people never need to change these.
@@ -156,6 +174,16 @@ const bool PRINT_TO_SERIAL = false;
 // Brightness, from 0 (off) to 255 (full). Keep it low when the clock is
 // powered from a computer's USB port.
 #define BRIGHTNESS 60
+
+// The most current the rings may draw, so the clock dims itself instead
+// of asking too much from its power supply:
+//   { most milliamps, milliamps per color }
+//   most milliamps ........ the rings share the Arduino's 5V. From a
+//                           computer's USB port, keep it at 400 or less.
+//   milliamps per color ... what red, green or blue of one LED draws at
+//                           full. WS2812B: about 20.
+// This is an estimate, not a measurement: keep your fuses.
+const PowerLimit RING_POWER = { 400, 20 };
 
 // Flicker speed: lower = faster
 const uint8_t FLICKER_TIME_DIV = 3;
@@ -179,6 +207,15 @@ const bool REMEMBER_FLAME_CHOICE = true;
 #define RING2_PIN 7         // The pin for ring 2
 #define RING3_PIN 8         // The pin for ring 3
 #define RING4_PIN 9         // The pin for ring 4
+
+// The test strip (PART 2)
+#define TEST_STRIP_PIN 10           // The pin for the test strip
+#define TEST_STRIP_CHIP WS2812B     // The LED chip. 5mm LEDs are often PL9823 or APA106.
+#define TEST_STRIP_ORDER GRB        // If red and green look swapped, change to RGB
+                                    // (5mm LEDs are often RGB). Test with SOLID:
+                                    // it should look amber, not green.
+const PowerLimit TEST_STRIP_POWER = { 300, 20 };   // As for RING_POWER, for the
+                                                   // test strip's power supply
 
 // =====================================================================
 //  PART 4: NOTES
@@ -237,9 +274,13 @@ static_assert(FLAME_COUNT >= 1 && FLAME_COUNT <= LED_PER_RING, "FLAME_LIST must 
 // ---------------------------------------------------------------------
 CRGB leds[MAX_RINGS][LED_PER_RING];         // One row of LEDs per ring
 
+#ifdef USE_TEST_STRIP
+CRGB stripLeds[TEST_STRIP_LEDS];            // The test strip's LEDs
+#endif
+
 // The two flames each ring shows right now. They start as written in
 // PART 1, and the long press changes them.
-const Flame *currentFlame[MAX_RINGS][2];
+const Look *currentFlame[MAX_RINGS][2];
 
 bool systemState = START_ON;                // Clock on (true) or off (false)
 
@@ -312,51 +353,16 @@ int ringLed(int ring, int position) {
 }
 
 // ---------------------------------------------------------------------
-//  COLORS AND FADES
+//  SHOWING THE LEDS
 // ---------------------------------------------------------------------
-// A flame's color at one place on the ring. A wheel color holds its
-// brightness in red and its paleness in green (see wheelColor), and takes
-// its hue from the LED's place.
-CRGB paint(const Flame &flame, CRGB color, int position) {
-  if (flame.colors == FIXED_COLORS) return color;
-  uint8_t hue = position * 256 / LED_PER_RING;
-  return CRGB(CHSV(hue, 255 - color.g, color.r));
-}
-
-// How far a fade has got (0.0 to 1.0) when 'progress' (0.0 to 1.0) of
-// its time has passed
-float fadeAmount(Fade fade, float progress) {
-  switch (fade) {
-    case SMOOTH_FADE: return progress * progress * (3.0f - 2.0f * progress);
-    case EARLY_FADE:  return 1.0f - (1.0f - progress) * (1.0f - progress);
-    case LATE_FADE:   return progress * progress;
-    default:          return progress;   // STEADY_FADE
-  }
-}
-
-// Mixes color 'from' into color 'to'. level 0 = all 'from', level 1 = all 'to'.
-// Red, green and blue each move in a straight line from start to end.
-CRGB fadeBetween(CRGB from, CRGB to, float level) {
-  level = constrain(level, 0.0f, 1.0f);
-  CRGB out;
-  out.r = from.r + (int)((to.r - from.r) * level);
-  out.g = from.g + (int)((to.g - from.g) * level);
-  out.b = from.b + (int)((to.b - from.b) * level);
-  return out;
-}
-
-// Brightness factor (255 = full) for one LED. Each LED reads its own spot
-// in a smooth noise pattern, so the flames move independently.
-// flicker: in %, 0 = steady, 100 = deepest dips.
-uint8_t flickerScale(int ring, int position, uint8_t flicker) {
-  if (flicker == 0) return 255;
-  if (flicker > 100) flicker = 100;
-  uint16_t x = position * 97 + ring * 523;
-  uint16_t t = millis() / FLICKER_TIME_DIV;
-  uint8_t n = inoise8(x, t);
-  n = constrain(n, 40, 215);
-  uint8_t lowest = 255 - (uint16_t)flicker * 255 / 100;
-  return (uint8_t)map(n, 40, 215, lowest, 255);
+// Sends the colors to the LEDs, dimmed if needed to stay within each
+// power supply's limit (PART 3)
+void showLeds() {
+  limitPower(leds[0], NUM_CLOCKS * LED_PER_RING, RING_POWER);
+#ifdef USE_TEST_STRIP
+  limitPower(stripLeds, TEST_STRIP_LEDS, TEST_STRIP_POWER);
+#endif
+  FastLED.show();
 }
 
 // ---------------------------------------------------------------------
@@ -387,68 +393,81 @@ void printFlame(uint32_t ms, int pass, int position, CRGB c) {
 }
 
 // One flame moves around the ring:
-//   Behind the flame: its own trail.
+//   Behind the flame: its own trail (the last color of its list).
 //   Ahead of the flame: the trail the other flame left on its lap.
-//   The flame itself fades in from that old trail to the flame color
-//   (first half of the step), then into its own trail (second half).
+//   The flame itself fades in from that old trail through its color
+//   list, and ends on its own trail.
 // steady = true turns the flicker off.
 void drawClock(int ring, uint32_t ms, bool steady) {
   int pass, flamePosition;
   float progress;
   findFlame(ring, ms, pass, flamePosition, progress);
-  const Flame &now = *currentFlame[ring][pass];          // The flame moving now
-  const Flame &before = *currentFlame[ring][1 - pass];   // The flame of the last lap
+  const Look &now = *currentFlame[ring][pass];          // The flame moving now
+  const Look &before = *currentFlame[ring][1 - pass];   // The flame of the last lap
 
   for (int position = 0; position < LED_PER_RING; position++) {
     CRGB color;
     uint8_t flicker;
-    if (position < flamePosition) {                      // Behind: this flame's trail
-      color = paint(now, now.trailColor, position);
-      flicker = now.flicker;
-    } else if (position > flamePosition) {               // Ahead: the last lap's trail
-      color = paint(before, before.trailColor, position);
-      flicker = before.flicker;
-    } else if (progress < 0.5f) {                        // Flame, 1st half: fade in
-      float amount = (now.fadeIn == NO_FADE) ? 1.0f : fadeAmount(now.fadeIn, progress * 2);
-      color = fadeBetween(paint(before, before.trailColor, position),
-                          paint(now, now.flameColor, position), amount);
-      flicker = (uint8_t)(before.flicker + (now.flicker - before.flicker) * amount);
-    } else {                                             // Flame, 2nd half: fade out
-      float amount = (now.fadeOut == NO_FADE) ? 0.0f : fadeAmount(now.fadeOut, progress * 2 - 1);
-      color = fadeBetween(paint(now, now.flameColor, position),
-                          paint(now, now.trailColor, position), amount);
-      flicker = now.flicker;
+    if (position < flamePosition) {                     // Behind: this flame's trail
+      color = endColor(now, position, LED_PER_RING);
+      flicker = lookFlicker(now);
+    } else if (position > flamePosition) {              // Ahead: the last lap's trail
+      color = endColor(before, position, LED_PER_RING);
+      flicker = lookFlicker(before);
+    } else {                                            // The flame itself
+      color = lookColor(now, endColor(before, position, LED_PER_RING),
+                        progress, position, LED_PER_RING);
+      // The flicker changes over as the flame takes over from the old trail
+      float arrived = arrival(now, progress);
+      flicker = (uint8_t)(lookFlicker(before) + (lookFlicker(now) - lookFlicker(before)) * arrived);
     }
     if (PRINT_TO_SERIAL && ring == 0 && position == flamePosition) {
       printFlame(ms, pass, position, color);
     }
-    if (!steady) color.nscale8(flickerScale(ring, position, flicker));
+    if (!steady) color.nscale8(flickerScale(position * 97 + ring * 523, flicker));
     leds[ring][ringLed(ring, position)] = color;
   }
 }
 
 // MODE_COLOR_TEST: 12 = 1st flame, 1-5 = 2nd trail, 6 = 2nd flame, 7-11 = 1st trail
+// (the flame is the first color of its list, the trail the last)
 void drawColorTest(int ring) {
-  const Flame &first = *currentFlame[ring][0];
-  const Flame &second = *currentFlame[ring][1];
+  const Look &first = *currentFlame[ring][0];
+  const Look &second = *currentFlame[ring][1];
   for (int position = 0; position < LED_PER_RING; position++) {
     CRGB color;
-    if (position == 0)      color = paint(first, first.flameColor, position);
-    else if (position < 6)  color = paint(second, second.trailColor, position);
-    else if (position == 6) color = paint(second, second.flameColor, position);
-    else                    color = paint(first, first.trailColor, position);
+    if (position == 0)      color = firstColor(first, position, LED_PER_RING);
+    else if (position < 6)  color = endColor(second, position, LED_PER_RING);
+    else if (position == 6) color = firstColor(second, position, LED_PER_RING);
+    else                    color = endColor(first, position, LED_PER_RING);
     leds[ring][ringLed(ring, position)] = color;
   }
 }
 
-// Draws every ring
+#ifdef USE_TEST_STRIP
+// The test strip plays its look over and over. Each cycle starts where
+// the last one ended, so the loop has no jump.
+void drawTestStrip() {
+  const Look &look = TEST_STRIP_LOOK;
+  float phase = (float)(millis() % TEST_STRIP_CYCLE_MS) / (float)TEST_STRIP_CYCLE_MS;
+  for (uint8_t led = 0; led < TEST_STRIP_LEDS; led++) {
+    CRGB from = endColor(look, led, TEST_STRIP_LEDS);
+    stripLeds[led] = renderLook(look, from, phase, led, TEST_STRIP_LEDS, led * 97 + 4000);
+  }
+}
+#endif
+
+// Draws every ring, and the test strip
 void updateDisplay() {
   uint32_t ms = timeOfDay();
   for (int ring = 0; ring < NUM_CLOCKS; ring++) {
     if (BEHAVIOR == MODE_COLOR_TEST) drawColorTest(ring);
     else drawClock(ring, ms, BEHAVIOR == MODE_FREEZE);   // No flicker while frozen
   }
-  FastLED.show();
+#ifdef USE_TEST_STRIP
+  drawTestStrip();
+#endif
+  showLeds();
 }
 
 void clearDisplay() {
@@ -461,10 +480,10 @@ void clearDisplay() {
 void showRtcError() {
   while (true) {
     leds[0][0] = CRGB::Red;
-    FastLED.show();
+    showLeds();
     delay(300);
     leds[0][0] = CRGB::Black;
-    FastLED.show();
+    showLeds();
     delay(300);
   }
 }
@@ -489,7 +508,7 @@ uint16_t uploadId() {
 }
 
 // A flame's place in FLAME_LIST (0 = first), or -1 if it is not in the list
-int flameNumber(const Flame *flame) {
+int flameNumber(const Look *flame) {
   for (int i = 0; i < FLAME_COUNT; i++) {
     if (FLAME_LIST[i] == flame) return i;
   }
@@ -526,16 +545,16 @@ void loadChoice() {
 // ---------------------------------------------------------------------
 // Blinks each ring's flame number twice, like the hours on a clock:
 // flame 3 lights the LEDs at 1, 2 and 3 o'clock, in that flame's color.
-void showFlameNumbers(const Flame *const flame[], const int number[]) {
+void showFlameNumbers(const Look *const flame[], const int number[]) {
   for (int blink = 0; blink < 2; blink++) {
     FastLED.clear();
     for (int ring = 0; ring < NUM_CLOCKS; ring++) {
       for (int hour = 1; hour <= number[ring]; hour++) {
         int position = hour % LED_PER_RING;
-        leds[ring][ringLed(ring, position)] = paint(*flame[ring], flame[ring]->flameColor, position);
+        leds[ring][ringLed(ring, position)] = firstColor(*flame[ring], position, LED_PER_RING);
       }
     }
-    FastLED.show();
+    showLeds();
     delay(400);
     clearDisplay();
     delay(200);
@@ -545,7 +564,7 @@ void showFlameNumbers(const Flame *const flame[], const int number[]) {
 // The flame moving right now on each ring becomes the next one in FLAME_LIST
 void nextFlame() {
   uint32_t ms = timeOfDay();
-  const Flame *shown[MAX_RINGS];
+  const Look *shown[MAX_RINGS];
   int number[MAX_RINGS];
   for (int ring = 0; ring < NUM_CLOCKS; ring++) {
     int pass, position;
@@ -597,6 +616,9 @@ void setup() {
   if (NUM_CLOCKS >= 2) FastLED.addLeds<WS2812B, RING2_PIN, COLOR_ORDER>(leds[1], LED_PER_RING);
   if (NUM_CLOCKS >= 3) FastLED.addLeds<WS2812B, RING3_PIN, COLOR_ORDER>(leds[2], LED_PER_RING);
   if (NUM_CLOCKS >= 4) FastLED.addLeds<WS2812B, RING4_PIN, COLOR_ORDER>(leds[3], LED_PER_RING);
+#ifdef USE_TEST_STRIP
+  FastLED.addLeds<TEST_STRIP_CHIP, TEST_STRIP_PIN, TEST_STRIP_ORDER>(stripLeds, TEST_STRIP_LEDS);
+#endif
   FastLED.setBrightness(BRIGHTNESS);
 
 #ifdef USE_RTC
