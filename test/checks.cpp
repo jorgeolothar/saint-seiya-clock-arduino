@@ -219,6 +219,16 @@ int main() {
   limitPower(white, 12, limit);
   check(white[0] == CRGB(255, 255, 255), "left alone when already under the limit (brightness 60)");
 
+  printf("Flicker speed (FLICKER_SPEED_PERCENT = %u):\n", (unsigned)FLICKER_SPEED_PERCENT);
+  if (FLICKER_SPEED_PERCENT == 100) {
+    bool same = true;
+    const uint32_t times[] = { 0, 1, 2, 299, 300, 301, 196607, 196608, 86400000UL, 4000000000UL, 4294967295UL };
+    for (uint32_t ms : times) { fakeMillis = ms; same = same && flickerTime() == (uint16_t)(ms / 3); }
+    for (uint32_t i = 0; i < 100000; i++) { fakeMillis = i * 42949UL + 7; same = same && flickerTime() == (uint16_t)(fakeMillis / 3); }
+    check(same, "100%: one step every 3 ms, as before, from the start to 49 days");
+  }
+  fakeMillis = 0;
+
   checkHeartbeat();
   checkPulses();
   checkScenes();

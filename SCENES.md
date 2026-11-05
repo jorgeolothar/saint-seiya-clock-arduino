@@ -74,6 +74,8 @@ Temple looks are written the same way as flames: see [Making your own flame](REA
 
 > 🌈 **Rainbow looks** (`RAINBOW_COLORS`, like `RAINBOW_GLOW` and `RAINBOW_EMBER`) spread the rainbow across each temple's own LEDs, and every temple starts it over at red. A 1-LED temple is always red, and a 2-LED temple is red and aqua. The hues don't move over time.
 
+> 🔅 **Dim colors** are dimmed again by `BRIGHTNESS_PERCENT` in PART 3 of `FlameClock.ino` (25% as the sketch comes). At that setting, a dim rainbow color needs about 30% or more to show, for example `rainbowColor(35, 0)`. A color that's mostly one of red, green or blue, like `DARK_RED`, can go dimmer.
+
 ### 💓 Heartbeat looks
 
 A look with the `HEARTBEAT` effect beats twice in each cycle, like a heart, then rests until the cycle ends. Each beat plays the look's color list quickly, and its **last color** is the resting color between heartbeats. The amount is how strong the 2nd beat is, in %:

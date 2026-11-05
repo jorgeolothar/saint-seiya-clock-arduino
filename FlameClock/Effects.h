@@ -13,8 +13,8 @@
 #pragma once
 #include "LookTypes.h"
 
-// Flicker speed: lower = faster. Set in PART 3 of FlameClock.ino.
-extern const uint8_t FLICKER_TIME_DIV;
+// How fast flames flicker, in %. Set in PART 3 of FlameClock.ino.
+extern const uint16_t FLICKER_SPEED_PERCENT;
 
 // How far a fade has got (0.0 to 1.0) when 'progress' (0.0 to 1.0) of
 // its time has passed
@@ -161,13 +161,21 @@ inline uint8_t lookFlicker(const Look &look) {
   return (look.effect == FLAME) ? look.amount : 0;
 }
 
+// Where the flicker is in its noise pattern: at 100%, one step every
+// 3 ms. Worked out in two parts so it never overflows; the result wraps
+// around every 65536 steps, as a uint16_t does.
+inline uint16_t flickerTime() {
+  uint32_t ms = millis();
+  return (ms / 300) * FLICKER_SPEED_PERCENT + (ms % 300) * FLICKER_SPEED_PERCENT / 300;
+}
+
 // Brightness factor (255 = full) for one LED. Each LED reads its own
 // 'spot' in a smooth noise pattern, so LEDs flicker independently.
 // flicker: in %, 0 = steady, 100 = deepest dips.
 inline uint8_t flickerScale(uint16_t spot, uint8_t flicker) {
   if (flicker == 0) return 255;
   if (flicker > 100) flicker = 100;
-  uint16_t t = millis() / FLICKER_TIME_DIV;
+  uint16_t t = flickerTime();
   uint8_t n = inoise8(spot, t);
   n = constrain(n, 40, 215);
   uint8_t lowest = 255 - (uint16_t)flicker * 255 / 100;

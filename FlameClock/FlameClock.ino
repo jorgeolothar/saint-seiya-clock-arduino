@@ -177,9 +177,11 @@ const uint32_t ACCELERATED_SPEED = 60;
 //  Most people never need to change these.
 // =====================================================================
 
-// Brightness, from 0 (off) to 255 (full). Keep it low when the clock is
-// powered from a computer's USB port.
-#define BRIGHTNESS 60
+// Brightness of all the LEDs, in %: 0 = off, 100 = full. Keep it low when
+// the clock is powered from a computer's USB port. Every color is dimmed
+// by it, so a dim color dims even more.
+const uint8_t BRIGHTNESS_PERCENT = 25;
+static_assert(BRIGHTNESS_PERCENT <= 100, "BRIGHTNESS_PERCENT goes up to 100");
 
 // The most current the rings may draw, so the clock dims itself instead
 // of asking too much from its power supply:
@@ -191,8 +193,11 @@ const uint32_t ACCELERATED_SPEED = 60;
 // This is an estimate, not a measurement: keep your fuses.
 const PowerLimit RING_POWER = { 400, 20 };
 
-// Flicker speed: lower = faster
-const uint8_t FLICKER_TIME_DIV = 3;
+// How fast flames flicker, in %: 100 = normal, 200 = twice as fast,
+// 50 = half as fast
+const uint16_t FLICKER_SPEED_PERCENT = 100;
+static_assert(FLICKER_SPEED_PERCENT >= 1 && FLICKER_SPEED_PERCENT <= 1000,
+              "FLICKER_SPEED_PERCENT goes from 1 to 1000");
 
 // How often the LEDs are updated, in thousandths of a second
 const unsigned long FRAME_MS = 30;
@@ -647,7 +652,7 @@ void setup() {
 #ifdef USE_HADES
   FastLED.addLeds<HADES_CHIP, HADES_PIN, HADES_ORDER>(hadesLeds, hades.ledCount);
 #endif
-  FastLED.setBrightness(BRIGHTNESS);
+  FastLED.setBrightness(BRIGHTNESS_PERCENT * 255 / 100);
 
 #ifdef USE_RTC
   if (!rtc.begin()) {
