@@ -163,6 +163,26 @@ static void checkHeartbeat() {
   check(near(drawTemple(heart, true, 1000 + 1000 * mid1, 0, 0, true), R, 2), "and beats again");
 }
 
+static void checkPulses() {
+  printf("PULSES (red then blue, 3 pulses), starting from green:\n");
+  const Look burst = { PULSES, RED_BLUE, 3, FIXED_COLORS };
+  const float slot = PULSE_LENGTH + PULSE_GAP, mid = PULSE_LENGTH / 2;
+  check(lookColor(burst, G, 0.0f, 0, 1) == G, "starts from the old color");
+  check(near(lookColor(burst, G, mid, 0, 1), R, 2), "1st pulse: red halfway through it");
+  check(lookColor(burst, G, PULSE_LENGTH + PULSE_GAP / 2, 0, 1) == B, "between pulses: the last color");
+  check(near(lookColor(burst, G, slot + mid, 0, 1), R, 2) && near(lookColor(burst, G, 2 * slot + mid, 0, 1), R, 2),
+        "2nd and 3rd pulses");
+  check(near(lookColor(burst, G, slot + 0.001f, 0, 1), B, 12), "each later pulse starts from the resting color");
+  check(lookColor(burst, G, 3 * slot + mid, 0, 1) == B, "no 4th pulse");
+  check(lookColor(burst, G, 0.7f, 0, 1) == B && lookColor(burst, G, 1.0f, 0, 1) == B, "rests on the last color to the end");
+  check(arrival(burst, 0.0f) == 0.0f && arrival(burst, PULSE_LENGTH) == 1.0f, "it has taken over by the end of the 1st pulse");
+  check(drawLook(burst, burst, mid, 0, 1, 0, false) == lookColor(burst, B, mid, 0, 1), "it doesn't flicker");
+  const Look none = { PULSES, RED_BLUE, 0, FIXED_COLORS }, many = { PULSES, RED_BLUE, 200, FIXED_COLORS };
+  check(lookColor(none, G, slot + mid, 0, 1) == B, "amount 0 counts as 1 pulse");
+  check(near(lookColor(many, G, 7 * slot + mid, 0, 1), R, 2) && lookColor(many, G, 8 * slot + mid, 0, 1) == B,
+        "amount over 8 counts as 8 pulses");
+}
+
 int main() {
   setup();
 
@@ -200,6 +220,7 @@ int main() {
   check(white[0] == CRGB(255, 255, 255), "left alone when already under the limit (brightness 60)");
 
   checkHeartbeat();
+  checkPulses();
   checkScenes();
 
   printf(failures ? "%d check(s) FAILED\n" : "All checks passed\n", failures);

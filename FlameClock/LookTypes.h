@@ -36,9 +36,13 @@ enum Effect : uint8_t {
                   // With a single color, this is a solid color.
   FLAME,          // Fades through the colors, flickering. Amount = flicker in %:
                   // 0 = steady, 100 = strongest.
-  HEARTBEAT       // Beats twice, like a heart (lub, dub), then rests on the last
+  HEARTBEAT,      // Beats twice, like a heart (lub, dub), then rests on the last
                   // color until the cycle ends. Each beat plays the color list
                   // quickly. Amount = how strong the 2nd beat is, in %.
+  PULSES          // A quick burst of short pulses at the start of the cycle,
+                  // then rests on the last color until the cycle ends. Each
+                  // pulse plays the color list quickly. Amount = how many
+                  // pulses, 1 to 8.
 };
 
 // ---- Where a look's colors come from ----
@@ -69,12 +73,12 @@ inline CRGB wheelColor(uint8_t brightness, uint8_t paleness) {
 // The color list can be any length. Its colors share the cycle equally,
 // and the last one is where the look ends.
 struct Look {
-  Effect effect;              // GRADIENT, FLAME or HEARTBEAT
+  Effect effect;              // GRADIENT, FLAME, HEARTBEAT or PULSES
   const ColorStop *stops;     // The color list
   uint8_t stopCount;          // How many colors are in the list (counted for you)
   uint8_t amount;             // What it means depends on the effect (FLAME: flicker %,
-                              // HEARTBEAT: strength of the 2nd beat %)
-  ColorStyle colors;          // FIXED_COLORS or WHEEL_COLORS
+                              // HEARTBEAT: strength of the 2nd beat %, PULSES: how many)
+  ColorStyle colors;          // FIXED_COLORS or RAINBOW_COLORS
 
   template <size_t N>
   constexpr Look(Effect e, const ColorStop (&list)[N], uint8_t amt, ColorStyle style)

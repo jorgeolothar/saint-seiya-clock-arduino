@@ -71,16 +71,39 @@ inline void findStop(const Look &look, float phase, uint8_t &stop, float &level)
   level = fadeAmount(look.stops[part].fade, scaled - part);
 }
 
-// ---- HEARTBEAT timing, as parts of the cycle (0.0 to 1.0) ----
-const float BEAT_LENGTH = 0.15f;          // How long each beat takes
-const float SECOND_BEAT_START = 0.25f;    // When the 2nd beat (dub) starts
+// ---- HEARTBEAT timing, in % of the cycle ----
+const uint8_t BEAT_LENGTH_PERCENT = 15;         // How long each beat takes
+const uint8_t SECOND_BEAT_START_PERCENT = 25;   // When the 2nd beat (dub) starts
+
+// ---- PULSES timing, in % of the cycle ----
+const uint8_t PULSE_LENGTH_PERCENT = 8;         // How long each pulse takes
+const uint8_t PULSE_GAP_PERCENT = 4;            // The rest between two pulses of a burst
+const uint8_t MOST_PULSES = 8;                  // The most pulses a burst can have
+
+static_assert(SECOND_BEAT_START_PERCENT >= BEAT_LENGTH_PERCENT &&
+              SECOND_BEAT_START_PERCENT + BEAT_LENGTH_PERCENT <= 100,
+              "HEARTBEAT: the 2nd beat must start after the 1st one ends, and end by 100%");
+static_assert(MOST_PULSES * PULSE_LENGTH_PERCENT + (MOST_PULSES - 1) * PULSE_GAP_PERCENT <= 100,
+              "PULSES: MOST_PULSES pulses and their gaps must fit in 100% of the cycle");
+
+// The same, as parts of the cycle (0.0 to 1.0), for the drawing below
+const float BEAT_LENGTH = BEAT_LENGTH_PERCENT / 100.0f;
+const float SECOND_BEAT_START = SECOND_BEAT_START_PERCENT / 100.0f;
+const float PULSE_LENGTH = PULSE_LENGTH_PERCENT / 100.0f;
+const float PULSE_GAP = PULSE_GAP_PERCENT / 100.0f;
+
+// How many pulses a PULSES look has: its amount, from 1 to MOST_PULSES
+inline uint8_t pulseCount(const Look &look) {
+  return (look.amount < 1) ? 1 : (look.amount > MOST_PULSES) ? MOST_PULSES : look.amount;
+}
 
 // How far a look has taken over from the LED's old color at 'phase':
 // 0.0 = still the old color, 1.0 = past its first color
 inline float arrival(const Look &look, float phase) {
-  if (look.effect == HEARTBEAT) {         // It takes over during the 1st beat
-    phase = (phase < BEAT_LENGTH) ? phase / BEAT_LENGTH : 1.0f;
-  }
+  float first = (look.effect == HEARTBEAT) ? BEAT_LENGTH     // It takes over during
+              : (look.effect == PULSES)    ? PULSE_LENGTH    // its 1st beat or pulse
+              : 1.0f;
+  phase = (phase < first) ? phase / first : 1.0f;
   uint8_t stop;
   float level;
   findStop(look, phase, stop, level);
@@ -112,10 +135,24 @@ inline CRGB heartbeatColor(const Look &look, CRGB from, float phase, uint8_t led
   return rest;                                                  // Resting
 }
 
+// A burst of pulses' color at 'phase': the color list played quickly,
+// once per pulse, then its last color until the cycle ends
+inline CRGB pulsesColor(const Look &look, CRGB from, float phase, uint8_t led, uint8_t ledCount) {
+  CRGB rest = endColor(look, led, ledCount);
+  const float slot = PULSE_LENGTH + PULSE_GAP;                  // One pulse and its gap
+  uint8_t pulse = (uint8_t)(phase / slot);                      // Which pulse, from 0
+  float inPulse = phase - pulse * slot;
+  if (pulse < pulseCount(look) && inPulse < PULSE_LENGTH) {     // Pulsing
+    return listColor(look, (pulse == 0) ? from : rest, inPulse / PULSE_LENGTH, led, ledCount);
+  }
+  return rest;                                                  // Between pulses, or resting
+}
+
 // A look's color at 'phase', before flicker. 'from' is the LED's color
 // before the look started: the look fades from it into its first color.
 inline CRGB lookColor(const Look &look, CRGB from, float phase, uint8_t led, uint8_t ledCount) {
   if (look.effect == HEARTBEAT) return heartbeatColor(look, from, phase, led, ledCount);
+  if (look.effect == PULSES) return pulsesColor(look, from, phase, led, ledCount);
   return listColor(look, from, phase, led, ledCount);
 }
 

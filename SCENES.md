@@ -68,6 +68,7 @@ These come in **TempleLooks.h**. Any flame from `Flames.h` works as a temple loo
 | `UNDERWORLD` | A deep purple flame with a dim violet glow. For Hades' temples |
 | `SEA` | Deep sea blue that drifts into teal and back. For Poseidon's temples |
 | `HEART` | A heartbeat: two quick red beats, resting on a dark red glow. A cycle ms of `1000` = 60 beats a minute |
+| `BEACON` | A burst of 3 short white flashes, then dark. The cycle ms is how often the burst comes |
 
 Temple looks are written the same way as flames: see [Making your own flame](README.md#️-making-your-own-flame) in the README.
 
@@ -90,6 +91,28 @@ const Look HEART               = { HEARTBEAT, HEART_COLORS, 60, FIXED_COLORS };
 | 40 – 100% | Rests until the next heartbeat |
 
 The temple's **cycle ms** sets the heart rate: `1000` = 60 beats a minute, `600` = 100. Use `REPEAT`, so it keeps beating. A heartbeat doesn't flicker.
+
+### 🔦 Pulse looks
+
+A look with the `PULSES` effect gives a quick burst of short pulses at the start of each cycle, then rests until the cycle ends, like a beacon. Each pulse plays the look's color list quickly, and its **last color** is the resting color. The amount is how many pulses, from 1 to 8:
+
+```cpp
+const ColorStop BEACON_COLORS[] = { { SNAP, SPARK_WHITE }, { EARLY_FADE, BLACK } };
+const Look BEACON               = { PULSES, BEACON_COLORS, 3, FIXED_COLORS };
+```
+
+Each pulse takes 8% of the cycle, with 4% between pulses. With a cycle ms of `2000` and 3 pulses:
+
+| Time | What the LED does |
+|---|---|
+| 0 – 160 ms | 1st pulse |
+| 160 – 240 ms | Rests on the last color |
+| 240 – 400 ms | 2nd pulse |
+| 400 – 480 ms | Rests |
+| 480 – 640 ms | 3rd pulse |
+| 640 – 2000 ms | Rests until the next burst |
+
+So a longer cycle ms makes each pulse longer too. Use `REPEAT`, so the bursts keep coming. Pulses don't flicker.
 
 ## 🧪 Test modes
 
