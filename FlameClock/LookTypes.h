@@ -34,8 +34,11 @@ struct ColorStop {
 enum Effect : uint8_t {
   GRADIENT,       // Fades through the colors, steady. The amount is not used.
                   // With a single color, this is a solid color.
-  FLAME           // Fades through the colors, flickering. Amount = flicker in %:
+  FLAME,          // Fades through the colors, flickering. Amount = flicker in %:
                   // 0 = steady, 100 = strongest.
+  HEARTBEAT       // Beats twice, like a heart (lub, dub), then rests on the last
+                  // color until the cycle ends. Each beat plays the color list
+                  // quickly. Amount = how strong the 2nd beat is, in %.
 };
 
 // ---- Where a look's colors come from ----
@@ -66,10 +69,11 @@ inline CRGB wheelColor(uint8_t brightness, uint8_t paleness) {
 // The color list can be any length. Its colors share the cycle equally,
 // and the last one is where the look ends.
 struct Look {
-  Effect effect;              // GRADIENT or FLAME
+  Effect effect;              // GRADIENT, FLAME or HEARTBEAT
   const ColorStop *stops;     // The color list
   uint8_t stopCount;          // How many colors are in the list (counted for you)
-  uint8_t amount;             // What it means depends on the effect (FLAME: flicker %)
+  uint8_t amount;             // What it means depends on the effect (FLAME: flicker %,
+                              // HEARTBEAT: strength of the 2nd beat %)
   ColorStyle colors;          // FIXED_COLORS or WHEEL_COLORS
 
   template <size_t N>

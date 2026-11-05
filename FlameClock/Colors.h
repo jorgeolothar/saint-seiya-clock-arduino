@@ -31,6 +31,7 @@ const CRGB ICE_BLUE    = CRGB(0, 191, 255);
 const CRGB NEON_PINK   = CRGB(255, 0, 160);
 const CRGB DIM_TEAL    = CRGB(0, 60, 80);
 const CRGB CINDER      = CRGB(40, 6, 0);       // a dim, glowing red
+const CRGB DARK_RED    = CRGB(45, 0, 2);       // a deep, dim red
 const CRGB GOLD        = CRGB(255, 170, 20);
 const CRGB SEA_BLUE    = CRGB(0, 40, 160);
 const CRGB VIOLET      = CRGB(150, 40, 255);

@@ -71,18 +71,24 @@ inline void findStop(const Look &look, float phase, uint8_t &stop, float &level)
   level = fadeAmount(look.stops[part].fade, scaled - part);
 }
 
+// ---- HEARTBEAT timing, as parts of the cycle (0.0 to 1.0) ----
+const float BEAT_LENGTH = 0.15f;          // How long each beat takes
+const float SECOND_BEAT_START = 0.25f;    // When the 2nd beat (dub) starts
+
 // How far a look has taken over from the LED's old color at 'phase':
 // 0.0 = still the old color, 1.0 = past its first color
 inline float arrival(const Look &look, float phase) {
+  if (look.effect == HEARTBEAT) {         // It takes over during the 1st beat
+    phase = (phase < BEAT_LENGTH) ? phase / BEAT_LENGTH : 1.0f;
+  }
   uint8_t stop;
   float level;
   findStop(look, phase, stop, level);
   return (stop == 0) ? level : 1.0f;
 }
 
-// A look's color at 'phase', before flicker. 'from' is the LED's color
-// before the look started: the look fades from it into its first color.
-inline CRGB lookColor(const Look &look, CRGB from, float phase, uint8_t led, uint8_t ledCount) {
+// The color list played once, from 'from', at 'phase'
+inline CRGB listColor(const Look &look, CRGB from, float phase, uint8_t led, uint8_t ledCount) {
   uint8_t stop;
   float level;
   findStop(look, phase, stop, level);
@@ -90,7 +96,30 @@ inline CRGB lookColor(const Look &look, CRGB from, float phase, uint8_t led, uin
   return fadeBetween(start, paint(look, look.stops[stop].color, led, ledCount), level);
 }
 
-// How much a look flickers, in %
+// A heartbeat's color at 'phase': the color list played quickly twice,
+// the 2nd time weaker, then its last color until the cycle ends
+inline CRGB heartbeatColor(const Look &look, CRGB from, float phase, uint8_t led, uint8_t ledCount) {
+  CRGB rest = endColor(look, led, ledCount);
+  if (phase < BEAT_LENGTH) {                                    // Lub
+    return listColor(look, from, phase / BEAT_LENGTH, led, ledCount);
+  }
+  float inSecond = phase - SECOND_BEAT_START;
+  if (inSecond >= 0.0f && inSecond < BEAT_LENGTH) {             // Dub
+    uint8_t strength = (look.amount > 100) ? 100 : look.amount;
+    CRGB full = listColor(look, rest, inSecond / BEAT_LENGTH, led, ledCount);
+    return fadeBetween(rest, full, strength / 100.0f);
+  }
+  return rest;                                                  // Resting
+}
+
+// A look's color at 'phase', before flicker. 'from' is the LED's color
+// before the look started: the look fades from it into its first color.
+inline CRGB lookColor(const Look &look, CRGB from, float phase, uint8_t led, uint8_t ledCount) {
+  if (look.effect == HEARTBEAT) return heartbeatColor(look, from, phase, led, ledCount);
+  return listColor(look, from, phase, led, ledCount);
+}
+
+// How much a look flickers, in %. Only flames flicker.
 inline uint8_t lookFlicker(const Look &look) {
   return (look.effect == FLAME) ? look.amount : 0;
 }

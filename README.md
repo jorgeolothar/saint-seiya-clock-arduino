@@ -168,9 +168,9 @@ With only one color, the LED fades into it and stays: `SOLID` is a one-color fla
 
 | Value | What it means |
 |---|---|
-| **Effect** | `FLAME` = flickers. `GRADIENT` = steady |
+| **Effect** | `FLAME` = flickers. `GRADIENT` = steady. `HEARTBEAT` = beats twice, then rests (made for temples: see [SCENES.md](SCENES.md#-heartbeat-looks)) |
 | **Color list** | The name of the first line |
-| **Flicker %** | `0` = steady, `100` = strongest flicker. `GRADIENT` ignores it |
+| **Flicker %** | `0` = steady, `100` = strongest flicker. `GRADIENT` ignores it, and for `HEARTBEAT` it's the strength of the 2nd beat |
 | **Colors** | `FIXED_COLORS` = the colors as written. `WHEEL_COLORS` = a rainbow across the LEDs: around a ring, or across a temple's own LEDs |
 
 **The fades:**

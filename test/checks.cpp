@@ -144,6 +144,25 @@ static void checkScenes() {
   check(athena.hour == ALWAYS && athena.cycleMs == 4000, "down to the last one, Athena's temple");
 }
 
+static void checkHeartbeat() {
+  printf("HEARTBEAT (red then blue, 2nd beat 50%%), starting from green:\n");
+  const Look beat = { HEARTBEAT, RED_BLUE, 50, FIXED_COLORS };
+  const float mid1 = BEAT_LENGTH / 2, mid2 = SECOND_BEAT_START + BEAT_LENGTH / 2;
+  check(lookColor(beat, G, 0.0f, 0, 1) == G, "starts from the old color");
+  check(near(lookColor(beat, G, mid1, 0, 1), R, 2), "1st beat: red halfway through it");
+  check(lookColor(beat, G, (BEAT_LENGTH + SECOND_BEAT_START) / 2, 0, 1) == B, "between the beats: the last color");
+  check(near(lookColor(beat, G, mid2, 0, 1), CRGB(127, 0, 128), 2), "2nd beat: half as strong, halfway between blue and red");
+  check(lookColor(beat, G, 0.6f, 0, 1) == B && lookColor(beat, G, 1.0f, 0, 1) == B, "rests on the last color to the end");
+  check(arrival(beat, 0.0f) == 0.0f && arrival(beat, BEAT_LENGTH) == 1.0f, "it has taken over by the end of the 1st beat");
+  check(drawLook(beat, beat, 0.6f, 0, 1, 0, false) == B, "it doesn't flicker");
+  const Look quiet = { HEARTBEAT, RED_BLUE, 0, FIXED_COLORS };
+  check(lookColor(quiet, G, mid2, 0, 1) == B, "amount 0: no 2nd beat");
+
+  const Temple heart(1, 1, beat, OFF, 1000, REPEAT);
+  check(drawTemple(heart, true, 1000, 0, 0, true) == B, "in a temple, each heartbeat starts from the resting color");
+  check(near(drawTemple(heart, true, 1000 + 1000 * mid1, 0, 0, true), R, 2), "and beats again");
+}
+
 int main() {
   setup();
 
@@ -180,6 +199,7 @@ int main() {
   limitPower(white, 12, limit);
   check(white[0] == CRGB(255, 255, 255), "left alone when already under the limit (brightness 60)");
 
+  checkHeartbeat();
   checkScenes();
 
   printf(failures ? "%d check(s) FAILED\n" : "All checks passed\n", failures);
