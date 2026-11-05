@@ -1,10 +1,10 @@
-# 🏛️ Temple Scenes
+# 🏛️ Scenes
 
-Besides the clock rings, the Arduino can light up to four scenes of temples. Each scene is one chain of LEDs on its own pin, split into temples, and each temple lights up in its hour.
+Besides the clock rings, the Arduino can light up to four scenes. Each scene is one chain of LEDs on its own pin, split into **groups**: a few LEDs that light up together, like a temple, part of a throne or a street lamp. Each group lights up in its hour.
 
 The scenes are optional, and all four are switched off in the sketch as it comes. Switched off, they use no memory on the Arduino.
 
-| Scene | Temples | Cycle | Pin |
+| Scene | Groups | Cycle | Pin |
 |---|---|---|---|
 | **Sanctuary** | 12 zodiac temples, one per hour, and Athena's temple, always on | 12 hours, from midnight and from noon: Aries 12–1 o'clock … Pisces 11–12 | D10 |
 | **Asgard** | 7 temples, one per hour, then Odin's throne in hour 8 | 8 hours, 3 times a day | D11 |
@@ -20,9 +20,9 @@ Each scene has a `#define USE_...` line in **Scenes.h**. Remove the two slashes 
 // #define USE_ASGARD        // off
 ```
 
-## 🏗️ Setting up the temples
+## 🏗️ Setting up the groups
 
-Each temple is one line in **Scenes.h**, in the order its LEDs are wired: the temple whose LEDs come first on the chain goes first.
+Each group is one line in **Scenes.h**, in the order its LEDs are wired: the group whose LEDs come first on the chain goes first.
 
 ```cpp
 //  hour    LEDs  on look    off look  cycle ms  repeat
@@ -32,14 +32,16 @@ Each temple is one line in **Scenes.h**, in the order its LEDs are wired: the te
 
 | Value | What it means |
 |---|---|
-| **Hour** | Which hour of the scene's cycle the temple is on, from 1. `ALWAYS` = on all the time. The cycle is as long as the highest hour, then starts again |
-| **LEDs** | How many LEDs the temple has. To add an LED, change this number: nothing else moves |
-| **On look** | The look while it's on: any look from `TempleLooks.h` or `Flames.h` |
+| **Hour** | Which hour of the scene's cycle the group is on, from 1. `ALWAYS` = on all the time. The cycle is as long as the highest hour, then starts again |
+| **LEDs** | How many LEDs the group has. To add an LED, change this number: nothing else moves |
+| **On look** | The look while it's on: any look from `SceneLooks.h` or `Flames.h` |
 | **Off look** | The look while it's off. `OFF` = dark, `CINDERS` = a dim flickering glow |
 | **Cycle ms** | One cycle of the on look, in thousandths of a second (`2000` = 2 seconds, up to `65000`). `0` = fade in and hold |
 | **Repeat** | What happens after one cycle: `REPEAT` = again and again, `ONCE_HOLD` = stay on the last color, `ONCE_OFF` = turn to the off look |
 
-When a temple turns on, its look fades in from the off look. With `REPEAT`, each cycle starts where the last one ended, so a look whose colors go back and forth pulses smoothly.
+When a group turns on, its look fades in from the off look. With `REPEAT`, each cycle starts where the last one ended, so a look whose colors go back and forth pulses smoothly.
+
+Groups can share an hour. A throne can be several groups, each with its own look, and lights that should act on their own, like street lamps, are one group each.
 
 ## ⚙️ The settings of each scene
 
@@ -49,16 +51,16 @@ When a temple turns on, its look fades in from the off look. With `REPEAT`, each
 | `..._CHIP` | The LED chip: `WS2812B`, or for 5mm LEDs often `PL9823` or `APA106` |
 | `..._ORDER` | `GRB`, or `RGB` if red and green look swapped |
 | `..._POWER` | The scene's power limit: `{ most milliamps, milliamps per color }`. See [Power limit](#-power-limit) |
-| `..._LIGHTING` | `SPOTLIGHT` lights only the current hour's temple. `FILL` keeps each temple on from its hour until the end of the cycle |
+| `..._LIGHTING` | `SPOTLIGHT` lights only the current hour's groups. `FILL` keeps each group on from its hour until the end of the cycle |
 | `..._START` | When hour 1 starts, as `clockTime(hour, minute, 0)` |
 
 The cycle should fit a day evenly (8 or 12 hours, for example). If it doesn't, it starts again at `..._START` every day.
 
-`ALL_TEMPLES_ON`, at the top of `Scenes.h`, turns every temple of every scene on, whatever the hour. It's handy for checking the wiring. Set it back to `false` when you're done.
+`ALL_GROUPS_ON`, at the top of `Scenes.h`, turns every group of every scene on, whatever the hour. It's handy for checking the wiring. Set it back to `false` when you're done.
 
-## 🎨 The temple looks
+## 🎨 The scene looks
 
-These come in **TempleLooks.h**. Any flame from `Flames.h` works as a temple look too.
+These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too.
 
 | Look | What it is |
 |---|---|
@@ -71,9 +73,9 @@ These come in **TempleLooks.h**. Any flame from `Flames.h` works as a temple loo
 | `BEACON` | A burst of 3 short white flashes, then dark. The cycle ms is how often the burst comes |
 | `FAULTY_LIGHT` | A cold white light that goes out for a moment or stutters now and then, like a bad wire |
 
-Temple looks are written the same way as flames: see [Making your own flame](README.md#️-making-your-own-flame) in the README.
+Scene looks are written the same way as flames: see [Making your own flame](README.md#️-making-your-own-flame) in the README.
 
-> 🌈 **Rainbow looks** (`RAINBOW_COLORS`, like `RAINBOW_GLOW` and `RAINBOW_EMBER`) spread the rainbow across each temple's own LEDs, and every temple starts it over at red. A 1-LED temple is always red, and a 2-LED temple is red and aqua. The hues don't move over time.
+> 🌈 **Rainbow looks** (`RAINBOW_COLORS`, like `RAINBOW_GLOW` and `RAINBOW_EMBER`) spread the rainbow across each group's own LEDs, and every group starts it over at red. A 1-LED group is always red, and a 2-LED group is red and aqua. The hues don't move over time.
 
 > 🔅 **Dim colors** are dimmed again by `BRIGHTNESS_PERCENT` in PART 3 of `FlameClock.ino` (25% as the sketch comes). At that setting, a dim rainbow color needs about 30% or more to show, for example `rainbowColor(35, 0)`. A color that's mostly one of red, green or blue, like `DARK_RED`, can go dimmer.
 
@@ -93,7 +95,7 @@ const Look HEART               = { HEARTBEAT, HEART_COLORS, 60, FIXED_COLORS };
 | 25 – 40% | 2nd beat, at the amount's strength |
 | 40 – 100% | Rests until the next heartbeat |
 
-The temple's **cycle ms** sets the heart rate: `1000` = 60 beats a minute, `600` = 100. Use `REPEAT`, so it keeps beating. A heartbeat doesn't flicker.
+The group's **cycle ms** sets the heart rate: `1000` = 60 beats a minute, `600` = 100. Use `REPEAT`, so it keeps beating. A heartbeat doesn't flicker.
 
 ### 🔦 Pulse looks
 
@@ -132,9 +134,9 @@ const Look FAULTY_LIGHT               = { FAILING, FAULTY_LIGHT_COLORS, 30, FIXE
 | `30` | About every 2.7 seconds, at random |
 | `10` | About every 8 seconds, at random |
 
-**A temple's LEDs fail together,** like one light: the whole room goes dark at once. For lights that fail on their own, like two street lamps, make each light its own temple with the same hour. Different temples fail at different moments, and looks with different amounts fail at different rates.
+**A group's LEDs fail together,** like one light: the whole room goes dark at once. For lights that fail on their own, like two street lamps, make each light its own group with the same hour. Different groups fail at different moments, and looks with different amounts fail at different rates.
 
-The failures follow real time, not the temple's cycle, so they're the same whatever the cycle ms. With one color, the cycle ms doesn't matter: use `0`. A failing light doesn't flicker. `MODE_FREEZE` and `MODE_COLOR_TEST` show it steady.
+The failures follow real time, not the group's cycle, so they're the same whatever the cycle ms. With one color, the cycle ms doesn't matter: use `0`. A failing light doesn't flicker. `MODE_FREEZE` and `MODE_COLOR_TEST` show it steady.
 
 ## 🧪 Test modes
 
@@ -143,7 +145,7 @@ The scenes follow the clock's `BEHAVIOR` setting in **PART 2** of `FlameClock.in
 | Setting | What the scenes do |
 |---|---|
 | `MODE_ACCELERATED` | Runs through their hours faster. The looks keep their own speed |
-| `MODE_COLOR_TEST` | Every temple shows its on look's first color |
+| `MODE_COLOR_TEST` | Every group shows its on look's first color |
 | `MODE_FREEZE` | Holds them still |
 
 ## ⚡ Power limit
@@ -171,7 +173,7 @@ const PowerLimit SANCTUARY_POWER = { 300, 20 };   // most milliamps, milliamps p
 
 ## 💾 Memory
 
-The Uno and Nano have 2 KB of memory. Each scene switched on takes some of it for its LEDs. Its list of temples is kept in program space, so that part costs no memory.
+The Uno and Nano have 2 KB of memory. Each scene switched on takes some of it for its LEDs. Its list of groups is kept in program space, so that part costs no memory.
 
 | Switched on | Memory used |
 |---|---|
@@ -183,7 +185,7 @@ If the clock resets by itself or the LEDs show garbage, memory may be running ou
 
 ## 🩺 Troubleshooting
 
-- **A scene stays dark:** check that its `#define USE_...` line has no slashes in front. Then set `ALL_TEMPLES_ON = true` to rule out the hour.
-- **Red and green look swapped:** 5mm LEDs are often `RGB`. Change the scene's `..._ORDER`. A temple showing `SOLID` should look amber, not green.
+- **A scene stays dark:** check that its `#define USE_...` line has no slashes in front. Then set `ALL_GROUPS_ON = true` to rule out the hour.
+- **Red and green look swapped:** 5mm LEDs are often `RGB`. Change the scene's `..._ORDER`. A group showing `SOLID` should look amber, not green.
 - **Colors flicker or the chain shows random colors:** check the 100 nF capacitors, the 330 Ω resistor and that the scene's GND is joined to the Arduino's GND. Try `PL9823` or `APA106` as the scene's `..._CHIP`.
-- **The wrong temple lights up:** the lines in `Scenes.h` must be in the order the LEDs are wired, with the right number of LEDs per temple.
+- **The wrong group lights up:** the lines in `Scenes.h` must be in the order the LEDs are wired, with the right number of LEDs per group.

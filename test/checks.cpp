@@ -1,5 +1,5 @@
 // Checks for the parts that have no "before" to compare with: color lists
-// of other lengths, the power limit and the temple scenes. run.sh builds
+// of other lengths, the power limit and the scenes. run.sh builds
 // it with the current sketch, every scene switched on.
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +34,7 @@ const Look ON_LOOK = { GRADIENT, RED_BLUE, 0, FIXED_COLORS };
 const ColorStop GREEN[] = { { SNAP, G } };
 const Look GREEN_OFF = { GRADIENT, GREEN, 0, FIXED_COLORS };
 
-constexpr Temple TEST_TEMPLES[] = {
+constexpr Group TEST_GROUPS[] = {
 //  hour    LEDs  on       off        cycle  repeat         LEDs on the chain
   { 1,      2,    ON_LOOK, OFF,       1000,  REPEAT },      // 0, 1
   { 2,      1,    ON_LOOK, GREEN_OFF, 1000,  ONCE_HOLD },   // 2
@@ -42,36 +42,36 @@ constexpr Temple TEST_TEMPLES[] = {
   { 12,     1,    ON_LOOK, OFF,       1000,  REPEAT },      // 6
   { ALWAYS, 2,    ON_LOOK, OFF,       0,     REPEAT },      // 7, 8
 };
-CRGB testLeds[ledsIn(TEST_TEMPLES)];
+CRGB testLeds[ledsIn(TEST_GROUPS)];
 const PowerLimit TEST_POWER = { 1000, 20 };
-const Scene spotlight(SCENE_TEMPLES(TEST_TEMPLES), testLeds, SPOTLIGHT, clockTime(1, 0, 0), TEST_POWER, 0);
-const Scene fill(SCENE_TEMPLES(TEST_TEMPLES), testLeds, FILL, clockTime(1, 0, 0), TEST_POWER, 0);
+const Scene spotlight(SCENE_GROUPS(TEST_GROUPS), testLeds, SPOTLIGHT, clockTime(1, 0, 0), TEST_POWER, 0);
+const Scene fill(SCENE_GROUPS(TEST_GROUPS), testLeds, FILL, clockTime(1, 0, 0), TEST_POWER, 0);
 
-constexpr Temple EIGHT_TEMPLES[] = {
+constexpr Group EIGHT_GROUPS[] = {
   { 1, 1, ON_LOOK, OFF, 1000, REPEAT }, { 2, 1, ON_LOOK, OFF, 1000, REPEAT }, { 3, 1, ON_LOOK, OFF, 1000, REPEAT },
   { 4, 1, ON_LOOK, OFF, 1000, REPEAT }, { 5, 1, ON_LOOK, OFF, 1000, REPEAT }, { 6, 1, ON_LOOK, OFF, 1000, REPEAT },
   { 7, 1, ON_LOOK, OFF, 1000, REPEAT }, { 8, 1, ON_LOOK, OFF, 1000, REPEAT },   // the throne
 };
-CRGB eightLeds[ledsIn(EIGHT_TEMPLES)];
-const Scene eight(SCENE_TEMPLES(EIGHT_TEMPLES), eightLeds, SPOTLIGHT, clockTime(0, 0, 0), TEST_POWER, 0);
+CRGB eightLeds[ledsIn(EIGHT_GROUPS)];
+const Scene eight(SCENE_GROUPS(EIGHT_GROUPS), eightLeds, SPOTLIGHT, clockTime(0, 0, 0), TEST_POWER, 0);
 
 // Two lamps that fail as often as they can: 3 LEDs, then 2
 const ColorStop RED_LAMP[] = { { SNAP, R } };
 const Look FAILING_LAMP = { FAILING, RED_LAMP, 100, FIXED_COLORS };
-constexpr Temple LAMPS[] = {
+constexpr Group LAMPS[] = {
   { ALWAYS, 3, FAILING_LAMP, OFF, 0, REPEAT },
   { ALWAYS, 2, FAILING_LAMP, OFF, 0, REPEAT },
 };
 CRGB lampLeds[ledsIn(LAMPS)];
-const Scene lamps(SCENE_TEMPLES(LAMPS), lampLeds, SPOTLIGHT, clockTime(0, 0, 0), TEST_POWER, 0);
+const Scene lamps(SCENE_GROUPS(LAMPS), lampLeds, SPOTLIGHT, clockTime(0, 0, 0), TEST_POWER, 0);
 
-// Which temples of a scene are on at a time of day, as a string like "1....": 1 = on
+// Which groups of a scene are on at a time of day, as a string like "1....": 1 = on
 static const char *onAt(const Scene &scene, uint32_t ms, bool allOn = false) {
   static char text[32];
   uint8_t i = 0;
-  for (; i < scene.templeCount; i++) {
+  for (; i < scene.groupCount; i++) {
     uint32_t onFor;
-    text[i] = templeOn(scene, scene.temples[i].get(), ms, allOn, onFor) ? '1' : '.';
+    text[i] = groupOn(scene, scene.groups[i].get(), ms, allOn, onFor) ? '1' : '.';
   }
   text[i] = 0;
   return text;
@@ -96,20 +96,20 @@ static bool ledsAre(const Scene &scene, const CRGB *want) {
 }
 
 static void checkScenes() {
-  printf("Scene layout (temples of 2, 1, 3, 1 and 2 LEDs):\n");
-  check(spotlight.templeCount == 5, "5 temples");
-  check(spotlight.ledCount == 9 && ledsIn(TEST_TEMPLES) == 9, "9 LEDs, counted for you");
-  check(spotlight.hours == 12, "12 hours a cycle: the highest temple hour");
-  check(eight.hours == 8, "7 temples and a throne: 8 hours a cycle");
+  printf("Scene layout (groups of 2, 1, 3, 1 and 2 LEDs):\n");
+  check(spotlight.groupCount == 5, "5 groups");
+  check(spotlight.ledCount == 9 && ledsIn(TEST_GROUPS) == 9, "9 LEDs, counted for you");
+  check(spotlight.hours == 12, "12 hours a cycle: the highest group hour");
+  check(eight.hours == 8, "7 groups and a throne: 8 hours a cycle");
 
-  printf("SPOTLIGHT, hour 1 starting at 1 o'clock (temples: hours 1, 2, 3, 12, ALWAYS):\n");
+  printf("SPOTLIGHT, hour 1 starting at 1 o'clock (groups: hours 1, 2, 3, 12, ALWAYS):\n");
   check(onAtIs(spotlight, clockTime(1, 30, 0), "1...1"), "01:30: hour 1, and ALWAYS");
   check(onAtIs(spotlight, clockTime(2, 0, 0), ".1..1"), "02:00: hour 2 starts on the dot");
-  check(onAtIs(spotlight, clockTime(4, 0, 0), "....1"), "04:00: hours 4 to 11 have no temple");
+  check(onAtIs(spotlight, clockTime(4, 0, 0), "....1"), "04:00: hours 4 to 11 have no group");
   check(onAtIs(spotlight, clockTime(0, 30, 0), "...11"), "00:30: hour 12");
   check(onAtIs(spotlight, clockTime(12, 30, 0), "...11"), "12:30: hour 12 again");
   check(onAtIs(spotlight, clockTime(13, 30, 0), "1...1"), "13:30: the second cycle of the day");
-  check(onAtIs(spotlight, clockTime(1, 30, 0), "11111", true), "ALL_TEMPLES_ON turns every temple on");
+  check(onAtIs(spotlight, clockTime(1, 30, 0), "11111", true), "ALL_GROUPS_ON turns every group on");
 
   printf("FILL:\n");
   check(onAtIs(fill, clockTime(2, 30, 0), "11..1"), "02:30: hours 1 and 2 stay on");
@@ -118,9 +118,9 @@ static void checkScenes() {
   check(onAtIs(fill, clockTime(1, 0, 0), "1...1"), "01:00: the cycle starts again");
 
   printf("8 hours a cycle, from midnight:\n");
-  check(onAtIs(eight, clockTime(0, 30, 0), "1......."), "00:30: temple 1");
-  check(onAtIs(eight, clockTime(7, 30, 0), ".......1"), "07:30: the throne, once the 7 temples are done");
-  check(onAtIs(eight, clockTime(8, 30, 0), "1......."), "08:30: temple 1 again");
+  check(onAtIs(eight, clockTime(0, 30, 0), "1......."), "00:30: group 1");
+  check(onAtIs(eight, clockTime(7, 30, 0), ".......1"), "07:30: the throne, once the 7 groups are done");
+  check(onAtIs(eight, clockTime(8, 30, 0), "1......."), "08:30: group 1 again");
   check(onAtIs(eight, clockTime(23, 59, 0), ".......1"), "23:59: the throne, then midnight starts cleanly");
 
   printf("Drawing (GRADIENT red then blue, 1 second a cycle, no flicker):\n");
@@ -132,22 +132,22 @@ static void checkScenes() {
   const CRGB second[9] = { K, K, R, K, K, K, K, B, B };
   check(ledsAre(spotlight, second), "02:00:00.5: only the LED of hour 2 changes");
 
-  check(drawTemple(TEST_TEMPLES[1], true, 0, 0, 0, 0, true) == G, "turning on fades in from the off look");
-  check(drawTemple(TEST_TEMPLES[0], true, 1000, 0, 0, 0, true) == B, "REPEAT: the 2nd cycle starts where the 1st ended");
-  check(drawTemple(TEST_TEMPLES[0], true, 1500, 0, 0, 0, true) == R, "REPEAT: and plays again");
-  check(drawTemple(TEST_TEMPLES[1], true, 5000, 0, 0, 0, true) == B, "ONCE_HOLD: stays on the last color");
-  check(drawTemple(TEST_TEMPLES[2], true, 5000, 0, 0, 0, true) == K, "ONCE_OFF: turns to the off look");
+  check(drawGroup(TEST_GROUPS[1], true, 0, 0, 0, 0, true) == G, "turning on fades in from the off look");
+  check(drawGroup(TEST_GROUPS[0], true, 1000, 0, 0, 0, true) == B, "REPEAT: the 2nd cycle starts where the 1st ended");
+  check(drawGroup(TEST_GROUPS[0], true, 1500, 0, 0, 0, true) == R, "REPEAT: and plays again");
+  check(drawGroup(TEST_GROUPS[1], true, 5000, 0, 0, 0, true) == B, "ONCE_HOLD: stays on the last color");
+  check(drawGroup(TEST_GROUPS[2], true, 5000, 0, 0, 0, true) == K, "ONCE_OFF: turns to the off look");
 
   drawScene(spotlight, clockTime(1, 0, 30), 60, true, false, false);
   check(spotlight.leds[0] == R, "sped up 60 times: 30 clock seconds play as half a real second");
   drawScene(spotlight, clockTime(5, 0, 0), 1, true, true, false);
-  check(spotlight.leds[3] == R && spotlight.leds[6] == R, "color test: every temple shows its on look's first color");
+  check(spotlight.leds[3] == R && spotlight.leds[6] == R, "color test: every group shows its on look's first color");
 
   printf("The scenes in Scenes.h:\n");
   check(NUM_SCENES == 4, "all four scenes compile (run.sh switches them all on)");
   const Scene &sanctuaryScene = *SCENES[0];
-  const Temple aries = sanctuaryScene.temples[0].get(), athena = sanctuaryScene.temples[12].get();
-  check(sanctuaryScene.templeCount == 13 && sanctuaryScene.ledCount == 26 && sanctuaryScene.hours == 12,
+  const Group aries = sanctuaryScene.groups[0].get(), athena = sanctuaryScene.groups[12].get();
+  check(sanctuaryScene.groupCount == 13 && sanctuaryScene.ledCount == 26 && sanctuaryScene.hours == 12,
         "the Sanctuary: 13 temples, 26 LEDs, 12 hours");
   check(aries.hour == 1 && aries.ledCount == 2 && aries.on == SANCTUARY[0].on && aries.repeat == REPEAT,
         "its temples read back out of program space as written");
@@ -168,9 +168,9 @@ static void checkHeartbeat() {
   const Look quiet = { HEARTBEAT, RED_BLUE, 0, FIXED_COLORS };
   check(lookColor(quiet, G, mid2, 0, 1) == B, "amount 0: no 2nd beat");
 
-  const Temple heart(1, 1, beat, OFF, 1000, REPEAT);
-  check(drawTemple(heart, true, 1000, 0, 0, 0, true) == B, "in a temple, each heartbeat starts from the resting color");
-  check(near(drawTemple(heart, true, 1000 + 1000 * mid1, 0, 0, 0, true), R, 2), "and beats again");
+  const Group heart(1, 1, beat, OFF, 1000, REPEAT);
+  check(drawGroup(heart, true, 1000, 0, 0, 0, true) == B, "in a group, each heartbeat starts from the resting color");
+  check(near(drawGroup(heart, true, 1000 + 1000 * mid1, 0, 0, 0, true), R, 2), "and beats again");
 }
 
 static void checkPulses() {
@@ -278,8 +278,8 @@ static void checkFailing() {
     wentOut = wentOut || lampLeds[0] == K;
     lampsApart += !(lampLeds[0] == lampLeds[3]);
   }
-  check(wentOut && together, "in a temple, all its LEDs go out together");
-  check(lampsApart > 1000, "two temples fail at different times");
+  check(wentOut && together, "in a group, all its LEDs go out together");
+  check(lampsApart > 1000, "two groups fail at different times");
   fakeMillis = 0;
 }
 

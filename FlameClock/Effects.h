@@ -2,8 +2,7 @@
 //  LOOKS: HOW THEY ARE DRAWN
 // =====================================================================
 //
-//  Turns a look into LED colors. The clock uses these, and so will the
-//  temple scenes.
+//  Turns a look into LED colors, for the clock and the scenes.
 //
 //  Keep this file in the same folder as FlameClock.ino. The Arduino IDE
 //  shows it as a tab. You do not need to change anything here.
@@ -171,9 +170,9 @@ inline uint16_t flickerTime() {
 
 // ---- FAILING timing, in real time ----
 // Time is cut into windows of FAIL_WINDOW_STEPS steps. Each window, each
-// group of LEDs (a temple, or a ring) has a chance (the look's amount, in %) of one fault: a stutter of
-// 1 to FAIL_LONGEST_STEPS steps, out on the first step and on about half
-// of the rest.
+// group of LEDs (a scene's group, or a ring) has a chance (the look's
+// amount, in %) of one fault: a stutter of 1 to FAIL_LONGEST_STEPS
+// steps, out on the first step and on about half of the rest.
 const uint8_t FAIL_STEP_MS = 25;          // The shortest dropout
 const uint8_t FAIL_WINDOW_STEPS = 32;     // 32 steps = 0.8 s: at 100%, a fault every 0.8 s
 const uint8_t FAIL_LONGEST_STEPS = 8;     // 8 steps = 0.2 s: the longest stutter
@@ -232,7 +231,7 @@ inline uint8_t flickerScale(uint16_t spot, uint8_t flicker) {
 // it does. To show a look on its own, give it as 'before' too.
 // 'spot' picks the LED's place in the flicker pattern: give each LED a
 // different one. 'groupSpot' picks when a failing look goes out: LEDs
-// with the same one (a temple's, or a ring's) fail together.
+// with the same one (a scene's group, or a ring) fail together.
 // steady = true turns the flicker and the dropouts off.
 inline CRGB drawLook(const Look &look, const Look &before, float phase, uint8_t led,
                      uint8_t ledCount, uint16_t spot, uint16_t groupSpot, bool steady) {

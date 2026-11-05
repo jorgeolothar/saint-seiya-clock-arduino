@@ -4,7 +4,7 @@
 //
 //  This file describes what a "look" is: how a group of LEDs changes
 //  color over one cycle. The clock's flames are looks (see Flames.h),
-//  and the temple scenes will use the same looks.
+//  and the scenes use the same looks.
 //
 //  Keep this file in the same folder as FlameClock.ino. The Arduino IDE
 //  shows it as a tab. You do not need to change anything here.
@@ -45,7 +45,7 @@ enum Effect : uint8_t {
                   // pulses, 1 to 8.
   FAILING         // Fades through the colors, steady, like GRADIENT, but goes
                   // out for a moment or stutters at random times, like a bad
-                  // wire. A temple's LEDs fail together. Amount = how often
+                  // wire. A group's LEDs fail together. Amount = how often
                   // it fails, in %.
 };
 

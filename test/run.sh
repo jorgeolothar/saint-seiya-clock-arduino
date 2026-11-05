@@ -48,7 +48,7 @@ else
 fi
 
 echo
-echo "== Checks: the current sketch, with every temple scene switched on =="
+echo "== Checks: the current sketch, with every scene switched on =="
 cp "$repo"/FlameClock/* "$work/scenes/FlameClock/"
 sed -i 's#^// \#define USE_\(SANCTUARY\|ASGARD\|POSEIDON\|HADES\)#\#define USE_\1#' "$work/scenes/FlameClock/Scenes.h"
 build checks.cpp "$work/scenes/FlameClock" "$work/checks"

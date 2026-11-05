@@ -1,18 +1,18 @@
 // =====================================================================
-//  TEMPLE SCENES: THE LOOKS
+//  SCENES: THE LOOKS
 // =====================================================================
 //
-//  Looks for the temples in Scenes.h. They are written the same way as
-//  the flames in Flames.h, and a temple can use any look from either
+//  Looks for the groups in Scenes.h. They are written the same way as
+//  the flames in Flames.h, and a group can use any look from either
 //  file. The colors are named in Colors.h.
 //
-//  A temple plays its look over one cycle (its "cycle ms" in Scenes.h).
+//  A group plays its look over one cycle (its "cycle ms" in Scenes.h).
 //  Looping, each cycle starts where the last one ended, so a look whose
 //  colors go back and forth (like ICE_WHITE then ICE_BLUE) pulses
 //  smoothly.
 //
 //  Keep this file in the same folder as FlameClock.ino. The Arduino IDE
-//  shows it as a tab called TempleLooks.h.
+//  shows it as a tab called SceneLooks.h.
 //
 // =====================================================================
 

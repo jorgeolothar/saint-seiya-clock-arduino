@@ -26,15 +26,15 @@
 //                       Hold again for the next one. The clock remembers
 //                       your choice, even when unplugged.
 //
-//  TEMPLE SCENES (optional, all switched off)
-//  The Arduino can also light the temples of the Sanctuary, Asgard,
-//  Poseidon and Hades scenes: each temple lights up in its hour. Set
-//  them up in the Scenes.h tab. See SCENES.md.
+//  SCENES (optional, all switched off)
+//  The Arduino can also light scenes: groups of LEDs, like the temples
+//  of the Sanctuary, Asgard, Poseidon and Hades, that each light up in
+//  their hour. Set them up in the Scenes.h tab. See SCENES.md.
 //
 //  WIRING (Arduino Nano or Uno)
 //    LED ring ............ 5V to 5V, GND to GND, DIN to pin D6
 //                          (ring 2 to D7, ring 3 to D8, ring 4 to D9)
-//    Temple scenes ....... DIN to pin D10 (Sanctuary), D11 (Asgard),
+//    Scenes .............. DIN to pin D10 (Sanctuary), D11 (Asgard),
 //                          D12 (Poseidon), A0 (Hades). Each scene on its
 //                          own 5V power supply, with its GND joined to the
 //                          Arduino's GND.
@@ -51,13 +51,13 @@
 //  IDE shows them as tabs.
 //    FlameClock.ino ... this file: your clocks and settings
 //    Flames.h ......... the clock's flames
-//    Scenes.h ......... the temple scenes
-//    TempleLooks.h .... the temples' looks
+//    Scenes.h ......... the scenes
+//    SceneLooks.h ..... the scenes' looks
 //    Colors.h ......... the named colors the flames and looks use
 //  The building blocks (no need to open them):
 //    LookTypes.h ...... what a look (a flame) is
 //    ClockTypes.h ..... what a clock (a ring) is
-//    SceneTypes.h ..... what a temple and a scene are
+//    SceneTypes.h ..... what a group and a scene are
 //    Effects.h ........ how looks are drawn
 //    SceneDriver.h .... how scenes are drawn
 //    Power.h .......... the power limit
@@ -166,11 +166,11 @@ const uint32_t ACCELERATED_SPEED = 60;
 // when asking for help. Leave it off otherwise: it takes memory.
 // #define PRINT_TO_SERIAL
 
-// The temple scenes follow these modes too: MODE_ACCELERATED runs
-// through their hours faster (their looks keep their own speed),
-// MODE_COLOR_TEST shows every temple's look, first color, and
-// MODE_FREEZE holds them still. ALL_TEMPLES_ON in Scenes.h turns every
-// temple on.
+// The scenes follow these modes too: MODE_ACCELERATED runs through
+// their hours faster (their looks keep their own speed),
+// MODE_COLOR_TEST shows every group's look, first color, and
+// MODE_FREEZE holds them still. ALL_GROUPS_ON in Scenes.h turns every
+// group on.
 
 // =====================================================================
 //  PART 3: MORE SETTINGS
@@ -219,7 +219,7 @@ const bool REMEMBER_FLAME_CHOICE = true;
 #define RING3_PIN 8         // The pin for ring 3
 #define RING4_PIN 9         // The pin for ring 4
 
-// The temple scenes' pins, chips and power limits are in Scenes.h
+// The scenes' pins, chips and power limits are in Scenes.h
 
 // =====================================================================
 //  PART 4: NOTES
@@ -278,23 +278,23 @@ static_assert(FLAME_COUNT >= 1 && FLAME_COUNT <= LED_PER_RING, "FLAME_LIST must 
 // ---------------------------------------------------------------------
 CRGB leds[MAX_RINGS][LED_PER_RING];         // One row of LEDs per ring
 
-// The temple scenes switched on in Scenes.h: their LEDs, and where each
+// The scenes switched on in Scenes.h: their LEDs, and where each
 // one starts in the flicker pattern
 #ifdef USE_SANCTUARY
 CRGB sanctuaryLeds[ledsIn(SANCTUARY)];
-const Scene sanctuary(SCENE_TEMPLES(SANCTUARY), sanctuaryLeds, SANCTUARY_LIGHTING, SANCTUARY_START, SANCTUARY_POWER, 4000);
+const Scene sanctuary(SCENE_GROUPS(SANCTUARY), sanctuaryLeds, SANCTUARY_LIGHTING, SANCTUARY_START, SANCTUARY_POWER, 4000);
 #endif
 #ifdef USE_ASGARD
 CRGB asgardLeds[ledsIn(ASGARD)];
-const Scene asgard(SCENE_TEMPLES(ASGARD), asgardLeds, ASGARD_LIGHTING, ASGARD_START, ASGARD_POWER, 12000);
+const Scene asgard(SCENE_GROUPS(ASGARD), asgardLeds, ASGARD_LIGHTING, ASGARD_START, ASGARD_POWER, 12000);
 #endif
 #ifdef USE_POSEIDON
 CRGB poseidonLeds[ledsIn(POSEIDON)];
-const Scene poseidon(SCENE_TEMPLES(POSEIDON), poseidonLeds, POSEIDON_LIGHTING, POSEIDON_START, POSEIDON_POWER, 20000);
+const Scene poseidon(SCENE_GROUPS(POSEIDON), poseidonLeds, POSEIDON_LIGHTING, POSEIDON_START, POSEIDON_POWER, 20000);
 #endif
 #ifdef USE_HADES
 CRGB hadesLeds[ledsIn(HADES)];
-const Scene hades(SCENE_TEMPLES(HADES), hadesLeds, HADES_LIGHTING, HADES_START, HADES_POWER, 28000);
+const Scene hades(SCENE_GROUPS(HADES), hadesLeds, HADES_LIGHTING, HADES_START, HADES_POWER, 28000);
 #endif
 
 const Scene *const SCENES[] = {
@@ -478,7 +478,7 @@ void drawColorTest(int ring) {
   }
 }
 
-// Draws every ring and every temple scene
+// Draws every ring and every scene
 void updateDisplay() {
   uint32_t ms = timeOfDay();
   for (int ring = 0; ring < NUM_CLOCKS; ring++) {
@@ -487,7 +487,7 @@ void updateDisplay() {
   }
   uint32_t speed = (BEHAVIOR == MODE_ACCELERATED) ? ACCELERATED_SPEED : 1;
   for (int i = 0; i < NUM_SCENES; i++) {
-    drawScene(*SCENES[i], ms, speed, BEHAVIOR == MODE_FREEZE, BEHAVIOR == MODE_COLOR_TEST, ALL_TEMPLES_ON);
+    drawScene(*SCENES[i], ms, speed, BEHAVIOR == MODE_FREEZE, BEHAVIOR == MODE_COLOR_TEST, ALL_GROUPS_ON);
   }
   showLeds();
 }
@@ -640,7 +640,7 @@ void setup() {
   if (NUM_CLOCKS >= 2) FastLED.addLeds<WS2812B, RING2_PIN, COLOR_ORDER>(leds[1], LED_PER_RING);
   if (NUM_CLOCKS >= 3) FastLED.addLeds<WS2812B, RING3_PIN, COLOR_ORDER>(leds[2], LED_PER_RING);
   if (NUM_CLOCKS >= 4) FastLED.addLeds<WS2812B, RING4_PIN, COLOR_ORDER>(leds[3], LED_PER_RING);
-  // One data pin per temple scene
+  // One data pin per scene
 #ifdef USE_SANCTUARY
   FastLED.addLeds<SANCTUARY_CHIP, SANCTUARY_PIN, SANCTUARY_ORDER>(sanctuaryLeds, sanctuary.ledCount);
 #endif
