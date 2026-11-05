@@ -3,8 +3,8 @@
 // =====================================================================
 //
 //  Named colors, shared by every look: the clock's flames in Flames.h,
-//  and later the temple scenes. Changing a color here changes every look
-//  that uses it.
+//  and the scenes' looks in SceneLooks.h. Changing a color here changes
+//  every look that uses it.
 //
 //  Keep this file in the same folder as FlameClock.ino. The Arduino IDE
 //  shows it as a tab called Colors.h.

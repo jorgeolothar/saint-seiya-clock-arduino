@@ -23,14 +23,14 @@ test/run.sh main~2     # compare with another commit, branch or tag
 
 `IDENTICAL` means the change didn't change a single LED color. `DIFFERENT` is expected when you change a look or how flames are drawn on purpose.
 
-**Checks.** Tests the parts that have nothing to compare with: color lists of other lengths, `SNAP` and `HOLD`, the power limit, and the temple scenes: which temples are on at which hour (`SPOTLIGHT`, `FILL`, 8 and 12 hour cycles, `ALL_TEMPLES_ON`), where each temple's LEDs are on the chain, and what `REPEAT`, `ONCE_HOLD` and `ONCE_OFF` do. The scene checks use a test scene of their own, so editing `Scenes.h` doesn't break them. All four scenes in `Scenes.h` are switched on for this, so they're all compiled.
+**Checks.** Tests the parts that have nothing to compare with: color lists of other lengths, `SNAP` and `HOLD`, the power limit, and the scenes: which groups are on at which hour (`SPOTLIGHT`, `FILL`, 8 and 12 hour cycles, `ALL_GROUPS_ON`), where each group's LEDs are on the chain, and what `REPEAT`, `ONCE_HOLD` and `ONCE_OFF` do. The scene checks use a test scene of their own, so editing `Scenes.h` doesn't break them. All four scenes in `Scenes.h` are switched on for this, so they're all compiled.
 
 ## What they don't check
 
 - **The real Arduino.** They don't compile for the Uno or Nano, so still click Verify in the Arduino IDE to see that it fits, and look at the real LEDs.
 - **FastLED's own math.** The `stub/` folder holds a small stand-in for FastLED, the Arduino and the EEPROM. Its rainbow colors and flicker pattern are not FastLED's, so the printed colors of `RAINBOW_COLORS` flames and the flicker are not what the LEDs show. That's fine for comparing two versions, which both use the same stand-in.
 - **All of FastLED's names.** The real FastLED defines macros, and a sketch name that matches one breaks only in the Arduino IDE. The stand-in defines the ones known to clash (`LOOP`, `LEDS`, at the end of `stub/FastLED.h`). If the IDE shows an error the tests didn't, add the name there.
-- **Program space.** On the Arduino, the temple lists are kept in program space and copied out with `memcpy_P`. A computer has only one kind of memory, so there it's a plain copy, and the tests can't tell a wrong read from a right one. `InFlash` makes a read without `get()` a compile error, but only the real LEDs prove it works.
+- **Program space.** On the Arduino, the scenes' group lists are kept in program space and copied out with `memcpy_P`. A computer has only one kind of memory, so there it's a plain copy, and the tests can't tell a wrong read from a right one. `InFlash` makes a read without `get()` a compile error, but only the real LEDs prove it works.
 - **Timing.** Time is set by the test, not counted, so it says nothing about speed or smoothness.
 
 ## Files

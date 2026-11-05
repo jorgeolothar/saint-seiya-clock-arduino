@@ -1,18 +1,18 @@
 // =====================================================================
-//  TEMPLE SCENES: THE LOOKS
+//  SCENES: THE LOOKS
 // =====================================================================
 //
-//  Looks for the temples in Scenes.h. They are written the same way as
-//  the flames in Flames.h, and a temple can use any look from either
+//  Looks for the groups in Scenes.h. They are written the same way as
+//  the flames in Flames.h, and a group can use any look from either
 //  file. The colors are named in Colors.h.
 //
-//  A temple plays its look over one cycle (its "cycle ms" in Scenes.h).
+//  A group plays its look over one cycle (its "cycle ms" in Scenes.h).
 //  Looping, each cycle starts where the last one ended, so a look whose
 //  colors go back and forth (like ICE_WHITE then ICE_BLUE) pulses
 //  smoothly.
 //
 //  Keep this file in the same folder as FlameClock.ino. The Arduino IDE
-//  shows it as a tab called TempleLooks.h.
+//  shows it as a tab called SceneLooks.h.
 //
 // =====================================================================
 
@@ -45,6 +45,11 @@ const Look HEART                  = { HEARTBEAT, HEART_COLORS, 60, FIXED_COLORS 
 // burst. Its cycle ms is how often the burst comes.
 const ColorStop BEACON_COLORS[]   = { { SNAP, SPARK_WHITE }, { EARLY_FADE, BLACK } };
 const Look BEACON                 = { PULSES, BEACON_COLORS, 3, FIXED_COLORS };
+
+// A faulty light: a cold white that goes out for a moment or stutters
+// now and then, like a bad wire. Its cycle ms doesn't matter: use 0.
+const ColorStop FAULTY_LIGHT_COLORS[] = { { SNAP, ICE_WHITE } };
+const Look FAULTY_LIGHT           = { FAILING, FAULTY_LIGHT_COLORS, 30, FIXED_COLORS };
 
 // Deep sea blue that drifts into teal and back. For Poseidon's temples.
 const ColorStop SEA_COLORS[]      = { { SMOOTH_FADE, DIM_TEAL }, { SMOOTH_FADE, SEA_BLUE } };

@@ -1,10 +1,11 @@
 // =====================================================================
-//  TEMPLE SCENES
+//  SCENES
 // =====================================================================
 //
 //  Each scene is a chain of LEDs on its own data pin, split into
-//  temples. A temple lights up in its hour of the scene's cycle, and
-//  plays its look. All four scenes are switched off as the sketch
+//  groups: a few LEDs that light up together, like a temple, part of a
+//  throne or a street lamp. A group lights up in its hour of the
+//  scene's cycle, and plays its look. All four scenes are switched off as the sketch
 //  comes: see SCENES.md, next to the README.
 //
 //  Keep this file in the same folder as FlameClock.ino. The Arduino IDE
@@ -12,17 +13,19 @@
 //
 //  HOW A SCENE IS WRITTEN
 //
-//    One line per temple, in the order the LEDs are wired: the temple
-//    whose LEDs come first on the chain goes first. To give a temple an
-//    extra LED, change its LEDs number. Nothing else moves.
+//    One line per group, in the order the LEDs are wired: the group
+//    whose LEDs come first on the chain goes first. To give a group an
+//    extra LED, change its LEDs number. Nothing else moves. Groups can
+//    share an hour: a throne can be several groups, each with its own
+//    look, and street lamps that fail on their own are one group each.
 //
 //    { hour, LEDs, on look, off look, cycle ms, repeat },
 //
-//    hour ....... which hour of the scene's cycle the temple is on, from
+//    hour ....... which hour of the scene's cycle the group is on, from
 //                 1. ALWAYS = on all the time. The cycle is as long as
 //                 the highest hour, and starts again after it.
-//    LEDs ....... how many LEDs the temple has
-//    on look .... the look while it is on: any look from TempleLooks.h
+//    LEDs ....... how many LEDs the group has
+//    on look .... the look while it is on: any look from SceneLooks.h
 //                 or Flames.h
 //    off look ... the look while it is off. OFF = dark. It shows its
 //                 last color, with its flicker.
@@ -34,7 +37,7 @@
 //                   ONCE_HOLD .. stay on its last color
 //                   ONCE_OFF ... turn to the off look
 //
-//    When a temple turns on, its look fades in from the off look.
+//    When a group turns on, its look fades in from the off look.
 //
 //  THE SETTINGS OF EACH SCENE
 //
@@ -48,8 +51,8 @@
 //    ..._POWER ..... the scene's power supply: { most milliamps,
 //                    milliamps per color }, as for RING_POWER in PART 3
 //                    of FlameClock.ino
-//    ..._LIGHTING .. SPOTLIGHT = only the current hour's temple is on
-//                    FILL = each temple stays on from its hour until
+//    ..._LIGHTING .. SPOTLIGHT = only the current hour's groups are on
+//                    FILL = each group stays on from its hour until
 //                           the end of the cycle
 //    ..._START ..... when hour 1 starts, as clockTime(hour, minute, 0)
 //
@@ -62,11 +65,11 @@
 #include "SceneTypes.h"   // The building blocks. Do not change these lines.
 #include "ClockTypes.h"
 #include "Flames.h"
-#include "TempleLooks.h"
+#include "SceneLooks.h"
 
-// Turn every temple of every scene on, whatever the hour? Handy for
+// Turn every group of every scene on, whatever the hour? Handy for
 // checking the wiring. true = yes, false = no (the normal setting)
-const bool ALL_TEMPLES_ON = false;
+const bool ALL_GROUPS_ON = false;
 
 // ---------------------------------------------------------------------
 //  SANCTUARY: the 12 zodiac temples, one per hour, and Athena's temple,
@@ -82,7 +85,7 @@ const PowerLimit SANCTUARY_POWER = { 300, 20 };
 const Lighting SANCTUARY_LIGHTING = SPOTLIGHT;
 const uint32_t SANCTUARY_START = clockTime(0, 0, 0);
 
-constexpr Temple SANCTUARY[] = {
+constexpr Group SANCTUARY[] = {
 //  hour    LEDs  on look    off look  cycle ms  repeat
   { 1,      2,    COOL,      OFF,      2000,     REPEAT },   // Aries
   { 2,      2,    COOL,      OFF,      2000,     REPEAT },   // Taurus
@@ -111,7 +114,7 @@ const PowerLimit ASGARD_POWER = { 300, 20 };
 const Lighting ASGARD_LIGHTING = SPOTLIGHT;
 const uint32_t ASGARD_START = clockTime(0, 0, 0);
 
-constexpr Temple ASGARD[] = {
+constexpr Group ASGARD[] = {
 //  hour  LEDs  on look  off look  cycle ms  repeat
   { 1,    2,    FROST,   OFF,      3000,     REPEAT },   // Temple 1
   { 2,    2,    FROST,   OFF,      3000,     REPEAT },   // Temple 2
@@ -135,7 +138,7 @@ const PowerLimit POSEIDON_POWER = { 300, 20 };
 const Lighting POSEIDON_LIGHTING = SPOTLIGHT;
 const uint32_t POSEIDON_START = clockTime(0, 0, 0);
 
-constexpr Temple POSEIDON[] = {
+constexpr Group POSEIDON[] = {
 //  hour  LEDs  on look  off look  cycle ms  repeat
   { 1,    2,    SEA,     OFF,      5000,     REPEAT },   // Temple 1
   { 2,    2,    SEA,     OFF,      5000,     REPEAT },   // Temple 2
@@ -159,7 +162,7 @@ const PowerLimit HADES_POWER = { 300, 20 };
 const Lighting HADES_LIGHTING = SPOTLIGHT;
 const uint32_t HADES_START = clockTime(0, 0, 0);
 
-constexpr Temple HADES[] = {
+constexpr Group HADES[] = {
 //  hour  LEDs  on look     off look  cycle ms  repeat
   { 1,    2,    UNDERWORLD, OFF,      3000,     REPEAT },   // Temple 1
   { 2,    2,    UNDERWORLD, OFF,      3000,     REPEAT },   // Temple 2

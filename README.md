@@ -91,7 +91,7 @@ At about 3:30 in the afternoon:
    | [FlameClock.ino](FlameClock/FlameClock.ino) | Your clocks and settings. Open this one. |
    | [Flames.h](FlameClock/Flames.h) | The clock's flames. |
    | [Colors.h](FlameClock/Colors.h) | The named colors the flames use. |
-   | [Scenes.h](FlameClock/Scenes.h), [TempleLooks.h](FlameClock/TempleLooks.h) | Optional temple scenes, switched off. See [SCENES.md](SCENES.md). |
+   | [Scenes.h](FlameClock/Scenes.h), [SceneLooks.h](FlameClock/SceneLooks.h) | Optional scenes, switched off. See [SCENES.md](SCENES.md). |
    | [LookTypes.h](FlameClock/LookTypes.h), [ClockTypes.h](FlameClock/ClockTypes.h), [SceneTypes.h](FlameClock/SceneTypes.h), [Effects.h](FlameClock/Effects.h), [SceneDriver.h](FlameClock/SceneDriver.h), [Power.h](FlameClock/Power.h) | The building blocks. No need to open them. |
 
 2. Install the libraries (see [Wiring and Libraries](#-wiring-and-libraries)).
@@ -168,10 +168,10 @@ With only one color, the LED fades into it and stays: `SOLID` is a one-color fla
 
 | Value | What it means |
 |---|---|
-| **Effect** | `FLAME` = flickers. `GRADIENT` = steady. `HEARTBEAT` = beats twice, then rests. `PULSES` = a burst of short pulses, then rests. The last two are made for temples: see [SCENES.md](SCENES.md#-heartbeat-looks) |
+| **Effect** | `FLAME` = flickers. `GRADIENT` = steady. `HEARTBEAT` = beats twice, then rests. `PULSES` = a burst of short pulses, then rests. `FAILING` = steady, but goes out or stutters now and then. The last three are made for scenes: see [SCENES.md](SCENES.md#-heartbeat-looks) |
 | **Color list** | The name of the first line |
-| **Amount** | For `FLAME`, the flicker in %: `0` = steady, `100` = strongest. For `HEARTBEAT`, how strong the 2nd beat is, in %. For `PULSES`, how many pulses (1 to 8). `GRADIENT` ignores it |
-| **Colors** | `FIXED_COLORS` = the colors as written. `RAINBOW_COLORS` = a rainbow across the LEDs: around a ring, or across a temple's own LEDs |
+| **Amount** | For `FLAME`, the flicker in %: `0` = steady, `100` = strongest. For `HEARTBEAT`, how strong the 2nd beat is, in %. For `PULSES`, how many pulses (1 to 8). For `FAILING`, how often it fails, in %. `GRADIENT` ignores it |
+| **Colors** | `FIXED_COLORS` = the colors as written. `RAINBOW_COLORS` = a rainbow across the LEDs: around a ring, or across a scene group's own LEDs |
 
 **The fades:**
 
@@ -215,9 +215,9 @@ How the two flames on a ring work together depends on their trails. Some ideas f
 | 🔄 Always lit | `{ SHOW_HOURS, COOL, FIRE, 1 }` | The ring is never dark: each flame replaces the other's trail |
 | 🔃 Empty & fill | `{ SHOW_HOURS, FROST, FIRE, 1 }` | The morning empties the ring, the afternoon fills it |
 
-## 🏛️ Temple Scenes
+## 🏛️ Scenes
 
-The sketch can also light temple scenes on extra pins, with temples that light up hour by hour. They're optional and switched off, so the clock doesn't need them. See **[SCENES.md](SCENES.md)**.
+The sketch can also light scenes on extra pins: groups of LEDs, like temples, that light up hour by hour. They're optional and switched off, so the clock doesn't need them. See **[SCENES.md](SCENES.md)**.
 
 ## ⚡ Power Limit
 
