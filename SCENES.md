@@ -60,8 +60,6 @@ The cycle should fit a day evenly (8 or 12 hours, for example). If it doesn't, i
 
 These come in **TempleLooks.h**. Any flame from `Flames.h` works as a temple look too.
 
-> 🌈 **Rainbow looks** (`WHEEL_COLORS`, like `HUE_WHEEL` and `RAINBOW_EMBER`) spread the rainbow across each temple's own LEDs, and every temple starts it over at red. A 1-LED temple is always red, and a 2-LED temple is red and aqua. The hues don't move over time.
-
 | Look | What it is |
 |---|---|
 | `OFF` | Dark. The usual off look |
@@ -69,8 +67,54 @@ These come in **TempleLooks.h**. Any flame from `Flames.h` works as a temple loo
 | `GOLD_GLOW` | A gold glow that swells and settles. For Athena's temple |
 | `UNDERWORLD` | A deep purple flame with a dim violet glow. For Hades' temples |
 | `SEA` | Deep sea blue that drifts into teal and back. For Poseidon's temples |
+| `HEART` | A heartbeat: two quick red beats, resting on a dark red glow. A cycle ms of `1000` = 60 beats a minute |
+| `BEACON` | A burst of 3 short white flashes, then dark. The cycle ms is how often the burst comes |
 
 Temple looks are written the same way as flames: see [Making your own flame](README.md#️-making-your-own-flame) in the README.
+
+> 🌈 **Rainbow looks** (`RAINBOW_COLORS`, like `RAINBOW_GLOW` and `RAINBOW_EMBER`) spread the rainbow across each temple's own LEDs, and every temple starts it over at red. A 1-LED temple is always red, and a 2-LED temple is red and aqua. The hues don't move over time.
+
+> 🔅 **Dim colors** are dimmed again by `BRIGHTNESS_PERCENT` in PART 3 of `FlameClock.ino` (25% as the sketch comes). At that setting, a dim rainbow color needs about 30% or more to show, for example `rainbowColor(35, 0)`. A color that's mostly one of red, green or blue, like `DARK_RED`, can go dimmer.
+
+### 💓 Heartbeat looks
+
+A look with the `HEARTBEAT` effect beats twice in each cycle, like a heart, then rests until the cycle ends. Each beat plays the look's color list quickly, and its **last color** is the resting color between heartbeats. The amount is how strong the 2nd beat is, in %:
+
+```cpp
+const ColorStop HEART_COLORS[] = { { EARLY_FADE, RED }, { SMOOTH_FADE, DARK_RED } };
+const Look HEART               = { HEARTBEAT, HEART_COLORS, 60, FIXED_COLORS };
+```
+
+| Part of the cycle | What the LED does |
+|---|---|
+| 0 – 15% | 1st beat: plays the color list |
+| 15 – 25% | Rests on the last color |
+| 25 – 40% | 2nd beat, at the amount's strength |
+| 40 – 100% | Rests until the next heartbeat |
+
+The temple's **cycle ms** sets the heart rate: `1000` = 60 beats a minute, `600` = 100. Use `REPEAT`, so it keeps beating. A heartbeat doesn't flicker.
+
+### 🔦 Pulse looks
+
+A look with the `PULSES` effect gives a quick burst of short pulses at the start of each cycle, then rests until the cycle ends, like a beacon. Each pulse plays the look's color list quickly, and its **last color** is the resting color. The amount is how many pulses, from 1 to 8:
+
+```cpp
+const ColorStop BEACON_COLORS[] = { { SNAP, SPARK_WHITE }, { EARLY_FADE, BLACK } };
+const Look BEACON               = { PULSES, BEACON_COLORS, 3, FIXED_COLORS };
+```
+
+Each pulse takes 8% of the cycle, with 4% between pulses. With a cycle ms of `2000` and 3 pulses:
+
+| Time | What the LED does |
+|---|---|
+| 0 – 160 ms | 1st pulse |
+| 160 – 240 ms | Rests on the last color |
+| 240 – 400 ms | 2nd pulse |
+| 400 – 480 ms | Rests |
+| 480 – 640 ms | 3rd pulse |
+| 640 – 2000 ms | Rests until the next burst |
+
+So a longer cycle ms makes each pulse longer too. Use `REPEAT`, so the bursts keep coming. Pulses don't flicker.
 
 ## 🧪 Test modes
 

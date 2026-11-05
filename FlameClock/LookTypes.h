@@ -34,24 +34,31 @@ struct ColorStop {
 enum Effect : uint8_t {
   GRADIENT,       // Fades through the colors, steady. The amount is not used.
                   // With a single color, this is a solid color.
-  FLAME           // Fades through the colors, flickering. Amount = flicker in %:
+  FLAME,          // Fades through the colors, flickering. Amount = flicker in %:
                   // 0 = steady, 100 = strongest.
+  HEARTBEAT,      // Beats twice, like a heart (lub, dub), then rests on the last
+                  // color until the cycle ends. Each beat plays the color list
+                  // quickly. Amount = how strong the 2nd beat is, in %.
+  PULSES          // A quick burst of short pulses at the start of the cycle,
+                  // then rests on the last color until the cycle ends. Each
+                  // pulse plays the color list quickly. Amount = how many
+                  // pulses, 1 to 8.
 };
 
 // ---- Where a look's colors come from ----
 enum ColorStyle : uint8_t {
   FIXED_COLORS,   // Exactly the colors you wrote
-  WHEEL_COLORS    // A rainbow across the LEDs: each LED takes its hue from its
-                  // place in the group. Use colors made with wheelColor().
+  RAINBOW_COLORS    // A rainbow across the LEDs: each LED takes its hue from its
+                  // place in the group. Use colors made with rainbowColor().
 };
 
-// ---- A color for WHEEL_COLORS looks ----
+// ---- A color for RAINBOW_COLORS looks ----
 // Brightness and paleness in % (paleness: 0 = full color, 100 = white).
 // The hue comes from the LED's place in the group. It is stored in an
-// ordinary CRGB (red = brightness, green = paleness) that only wheel
+// ordinary CRGB (red = brightness, green = paleness) that only rainbow
 // looks read this way, so it shows a meaningless color in a
 // FIXED_COLORS look.
-inline CRGB wheelColor(uint8_t brightness, uint8_t paleness) {
+inline CRGB rainbowColor(uint8_t brightness, uint8_t paleness) {
   if (brightness > 100) brightness = 100;
   if (paleness > 100) paleness = 100;
   return CRGB(brightness * 255 / 100, paleness * 255 / 100, 0);
@@ -66,11 +73,12 @@ inline CRGB wheelColor(uint8_t brightness, uint8_t paleness) {
 // The color list can be any length. Its colors share the cycle equally,
 // and the last one is where the look ends.
 struct Look {
-  Effect effect;              // GRADIENT or FLAME
+  Effect effect;              // GRADIENT, FLAME, HEARTBEAT or PULSES
   const ColorStop *stops;     // The color list
   uint8_t stopCount;          // How many colors are in the list (counted for you)
-  uint8_t amount;             // What it means depends on the effect (FLAME: flicker %)
-  ColorStyle colors;          // FIXED_COLORS or WHEEL_COLORS
+  uint8_t amount;             // What it means depends on the effect (FLAME: flicker %,
+                              // HEARTBEAT: strength of the 2nd beat %, PULSES: how many)
+  ColorStyle colors;          // FIXED_COLORS or RAINBOW_COLORS
 
   template <size_t N>
   constexpr Look(Effect e, const ColorStop (&list)[N], uint8_t amt, ColorStyle style)

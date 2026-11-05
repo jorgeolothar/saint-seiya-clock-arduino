@@ -36,6 +36,16 @@ const Look GOLD_GLOW              = { FLAME, GOLD_GLOW_COLORS, 15, FIXED_COLORS 
 const ColorStop UNDERWORLD_COLORS[] = { { SMOOTH_FADE, VIOLET }, { SMOOTH_FADE, DEEP_PURPLE } };
 const Look UNDERWORLD             = { FLAME, UNDERWORLD_COLORS, 60, FIXED_COLORS };
 
+// A heartbeat: two quick red beats, resting on a dark red glow. Its
+// cycle ms is the heart rate: 1000 = 60 beats a minute.
+const ColorStop HEART_COLORS[]    = { { EARLY_FADE, RED }, { SMOOTH_FADE, DARK_RED } };
+const Look HEART                  = { HEARTBEAT, HEART_COLORS, 60, FIXED_COLORS };
+
+// A beacon: a burst of 3 short white flashes, then dark until the next
+// burst. Its cycle ms is how often the burst comes.
+const ColorStop BEACON_COLORS[]   = { { SNAP, SPARK_WHITE }, { EARLY_FADE, BLACK } };
+const Look BEACON                 = { PULSES, BEACON_COLORS, 3, FIXED_COLORS };
+
 // Deep sea blue that drifts into teal and back. For Poseidon's temples.
 const ColorStop SEA_COLORS[]      = { { SMOOTH_FADE, DIM_TEAL }, { SMOOTH_FADE, SEA_BLUE } };
 const Look SEA                    = { GRADIENT, SEA_COLORS, 0, FIXED_COLORS };

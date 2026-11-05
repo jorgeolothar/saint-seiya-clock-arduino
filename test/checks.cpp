@@ -144,6 +144,45 @@ static void checkScenes() {
   check(athena.hour == ALWAYS && athena.cycleMs == 4000, "down to the last one, Athena's temple");
 }
 
+static void checkHeartbeat() {
+  printf("HEARTBEAT (red then blue, 2nd beat 50%%), starting from green:\n");
+  const Look beat = { HEARTBEAT, RED_BLUE, 50, FIXED_COLORS };
+  const float mid1 = BEAT_LENGTH / 2, mid2 = SECOND_BEAT_START + BEAT_LENGTH / 2;
+  check(lookColor(beat, G, 0.0f, 0, 1) == G, "starts from the old color");
+  check(near(lookColor(beat, G, mid1, 0, 1), R, 2), "1st beat: red halfway through it");
+  check(lookColor(beat, G, (BEAT_LENGTH + SECOND_BEAT_START) / 2, 0, 1) == B, "between the beats: the last color");
+  check(near(lookColor(beat, G, mid2, 0, 1), CRGB(127, 0, 128), 2), "2nd beat: half as strong, halfway between blue and red");
+  check(lookColor(beat, G, 0.6f, 0, 1) == B && lookColor(beat, G, 1.0f, 0, 1) == B, "rests on the last color to the end");
+  check(arrival(beat, 0.0f) == 0.0f && arrival(beat, BEAT_LENGTH) == 1.0f, "it has taken over by the end of the 1st beat");
+  check(drawLook(beat, beat, 0.6f, 0, 1, 0, false) == B, "it doesn't flicker");
+  const Look quiet = { HEARTBEAT, RED_BLUE, 0, FIXED_COLORS };
+  check(lookColor(quiet, G, mid2, 0, 1) == B, "amount 0: no 2nd beat");
+
+  const Temple heart(1, 1, beat, OFF, 1000, REPEAT);
+  check(drawTemple(heart, true, 1000, 0, 0, true) == B, "in a temple, each heartbeat starts from the resting color");
+  check(near(drawTemple(heart, true, 1000 + 1000 * mid1, 0, 0, true), R, 2), "and beats again");
+}
+
+static void checkPulses() {
+  printf("PULSES (red then blue, 3 pulses), starting from green:\n");
+  const Look burst = { PULSES, RED_BLUE, 3, FIXED_COLORS };
+  const float slot = PULSE_LENGTH + PULSE_GAP, mid = PULSE_LENGTH / 2;
+  check(lookColor(burst, G, 0.0f, 0, 1) == G, "starts from the old color");
+  check(near(lookColor(burst, G, mid, 0, 1), R, 2), "1st pulse: red halfway through it");
+  check(lookColor(burst, G, PULSE_LENGTH + PULSE_GAP / 2, 0, 1) == B, "between pulses: the last color");
+  check(near(lookColor(burst, G, slot + mid, 0, 1), R, 2) && near(lookColor(burst, G, 2 * slot + mid, 0, 1), R, 2),
+        "2nd and 3rd pulses");
+  check(near(lookColor(burst, G, slot + 0.001f, 0, 1), B, 12), "each later pulse starts from the resting color");
+  check(lookColor(burst, G, 3 * slot + mid, 0, 1) == B, "no 4th pulse");
+  check(lookColor(burst, G, 0.7f, 0, 1) == B && lookColor(burst, G, 1.0f, 0, 1) == B, "rests on the last color to the end");
+  check(arrival(burst, 0.0f) == 0.0f && arrival(burst, PULSE_LENGTH) == 1.0f, "it has taken over by the end of the 1st pulse");
+  check(drawLook(burst, burst, mid, 0, 1, 0, false) == lookColor(burst, B, mid, 0, 1), "it doesn't flicker");
+  const Look none = { PULSES, RED_BLUE, 0, FIXED_COLORS }, many = { PULSES, RED_BLUE, 200, FIXED_COLORS };
+  check(lookColor(none, G, slot + mid, 0, 1) == B, "amount 0 counts as 1 pulse");
+  check(near(lookColor(many, G, 7 * slot + mid, 0, 1), R, 2) && lookColor(many, G, 8 * slot + mid, 0, 1) == B,
+        "amount over 8 counts as 8 pulses");
+}
+
 int main() {
   setup();
 
@@ -180,6 +219,18 @@ int main() {
   limitPower(white, 12, limit);
   check(white[0] == CRGB(255, 255, 255), "left alone when already under the limit (brightness 60)");
 
+  printf("Flicker speed (FLICKER_SPEED_PERCENT = %u):\n", (unsigned)FLICKER_SPEED_PERCENT);
+  if (FLICKER_SPEED_PERCENT == 100) {
+    bool same = true;
+    const uint32_t times[] = { 0, 1, 2, 299, 300, 301, 196607, 196608, 86400000UL, 4000000000UL, 4294967295UL };
+    for (uint32_t ms : times) { fakeMillis = ms; same = same && flickerTime() == (uint16_t)(ms / 3); }
+    for (uint32_t i = 0; i < 100000; i++) { fakeMillis = i * 42949UL + 7; same = same && flickerTime() == (uint16_t)(fakeMillis / 3); }
+    check(same, "100%: one step every 3 ms, as before, from the start to 49 days");
+  }
+  fakeMillis = 0;
+
+  checkHeartbeat();
+  checkPulses();
   checkScenes();
 
   printf(failures ? "%d check(s) FAILED\n" : "All checks passed\n", failures);

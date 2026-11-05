@@ -104,9 +104,9 @@ In **PART 1** of `FlameClock.ino`, write one line for each LED ring (1 to 4 ring
 
 ```cpp
 const Clock CLOCKS[] = {
-  { SHOW_HOURS,   COOL,      EMBER,         1 },   // the Sanctuary Fire Clock
-  { SHOW_MINUTES, SPARK,     SPARK,         1 },   // a spark jumps every 5 minutes
-  { SHOW_SECONDS, HUE_WHEEL, RAINBOW_EMBER, 4 },   // a rainbow fills and burns out every 2 minutes
+  { SHOW_HOURS,   COOL,         EMBER,         1 },   // the Sanctuary Fire Clock
+  { SHOW_MINUTES, SPARK,        SPARK,         1 },   // a spark jumps every 5 minutes
+  { SHOW_SECONDS, RAINBOW_GLOW, RAINBOW_EMBER, 4 },   // a rainbow fills and burns out every 2 minutes
 };
 ```
 
@@ -128,7 +128,7 @@ These flames come built in. The number is what a ring shows when you pick it wit
 | 2 | 🧊 `COOL` | <small>🟦🟦</small>⬜ | Icy white flame, ice blue trail |
 | 3 | ⚡ `SPARK` | <small>⬛⬛</small>🟨 | A bright flash that dies out quickly, no trail |
 | 4 | 🟠 `SOLID` | <small>🟧🟧</small>🟧 | Steady amber, no fading, no flicker |
-| 5 | 🌈 `HUE_WHEEL` | <small>🟥🟨</small>🌈 | A rainbow around the ring: pale flame, deep colored trail |
+| 5 | 🌈 `RAINBOW_GLOW` | <small>🟥🟨</small>🌈 | A rainbow around the ring: pale flame, deep colored trail |
 | 6 | 🪵 `EMBER` | <small>⬛⬛</small>🟧 | Orange flame that burns out quickly to black. The countdown in the Sanctuary Fire Clock (see above) |
 | 7 | ❄️ `FROST` | <small>⬛⬛</small>⬜ | Icy flame that melts away to black |
 | 8 | 🕯️ `CANDLE` | <small>🟫🟫</small>🟧 | Warm flame that leaves a faint glow |
@@ -168,10 +168,10 @@ With only one color, the LED fades into it and stays: `SOLID` is a one-color fla
 
 | Value | What it means |
 |---|---|
-| **Effect** | `FLAME` = flickers. `GRADIENT` = steady |
+| **Effect** | `FLAME` = flickers. `GRADIENT` = steady. `HEARTBEAT` = beats twice, then rests. `PULSES` = a burst of short pulses, then rests. The last two are made for temples: see [SCENES.md](SCENES.md#-heartbeat-looks) |
 | **Color list** | The name of the first line |
-| **Flicker %** | `0` = steady, `100` = strongest flicker. `GRADIENT` ignores it |
-| **Colors** | `FIXED_COLORS` = the colors as written. `WHEEL_COLORS` = a rainbow across the LEDs: around a ring, or across a temple's own LEDs |
+| **Amount** | For `FLAME`, the flicker in %: `0` = steady, `100` = strongest. For `HEARTBEAT`, how strong the 2nd beat is, in %. For `PULSES`, how many pulses (1 to 8). `GRADIENT` ignores it |
+| **Colors** | `FIXED_COLORS` = the colors as written. `RAINBOW_COLORS` = a rainbow across the LEDs: around a ring, or across a temple's own LEDs |
 
 **The fades:**
 
@@ -194,10 +194,10 @@ const CRGB ORANGE = CRGB(255, 110, 0);
 
 Change a color there, and every flame that uses it changes too. Search the web for "RGB color picker" to find the numbers you want.
 
-**Rainbow colors** for `WHEEL_COLORS` flames are written as `wheelColor(brightness %, paleness %)`. Each LED takes its hue from its place on the ring, so there's no hue to pick:
+**Rainbow colors** for `RAINBOW_COLORS` flames are written as `rainbowColor(brightness %, paleness %)`. Each LED takes its hue from its place on the ring, so there's no hue to pick:
 
 ```cpp
-const CRGB WHEEL_PALE = wheelColor(100, 40);   // full brightness, a bit pale
+const CRGB RAINBOW_PALE = rainbowColor(100, 40);   // full brightness, a bit pale
 ```
 
 To let the button pick your new flame, add its name to `FLAME_LIST` at the bottom of `Flames.h` (up to 12 flames).

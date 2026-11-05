@@ -31,22 +31,23 @@ const CRGB ICE_BLUE    = CRGB(0, 191, 255);
 const CRGB NEON_PINK   = CRGB(255, 0, 160);
 const CRGB DIM_TEAL    = CRGB(0, 60, 80);
 const CRGB CINDER      = CRGB(40, 6, 0);       // a dim, glowing red
+const CRGB DARK_RED    = CRGB(45, 0, 2);       // a deep, dim red
 const CRGB GOLD        = CRGB(255, 170, 20);
 const CRGB SEA_BLUE    = CRGB(0, 40, 160);
 const CRGB VIOLET      = CRGB(150, 40, 255);
 const CRGB DEEP_PURPLE = CRGB(40, 0, 70);
 const CRGB BLACK       = CRGB(0, 0, 0);        // off. As a last color: no trail
 
-// Colors for WHEEL_COLORS looks, written as:
+// Colors for RAINBOW_COLORS looks, written as:
 //
-//   wheelColor(brightness %, paleness %)
+//   rainbowColor(brightness %, paleness %)
 //
 //   brightness .. 0 = off, 100 = full brightness
 //   paleness .... 0 = full color, 100 = white
 //
 // There is no hue to pick: each LED takes its hue from its place in the
 // group (on the clock: its place on the ring). Use these only in
-// WHEEL_COLORS looks (BLACK works there too).
-const CRGB WHEEL_PALE  = wheelColor(100, 40);  // bright and pale
-const CRGB WHEEL_DEEP  = wheelColor(80, 0);    // full color, a bit dim
-const CRGB WHEEL_FULL  = wheelColor(100, 0);   // full color, full brightness
+// RAINBOW_COLORS looks (BLACK works there too).
+const CRGB RAINBOW_PALE = rainbowColor(100, 40);   // bright and pale
+const CRGB RAINBOW_DEEP = rainbowColor(80, 0);     // full color, a bit dim
+const CRGB RAINBOW_FULL = rainbowColor(100, 0);    // full color, full brightness

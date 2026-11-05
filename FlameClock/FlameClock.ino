@@ -97,16 +97,16 @@ const Clock CLOCKS[] = {
   // lights the ring blue, one LED per hour. In the afternoon the blue
   // flames burn out, one per hour, like the countdown through the twelve
   // zodiac temples.
-  { SHOW_HOURS,   COOL,      EMBER,         1 },
+  { SHOW_HOURS,   COOL,         EMBER,         1 },
 
   // Ring 2, minutes: a bright spark jumps one LED every 5 minutes and
   // leaves no trail.
-  // { SHOW_MINUTES, SPARK,     SPARK,         1 },
+  // { SHOW_MINUTES, SPARK,        SPARK,         1 },
 
   // Ring 3, seconds: in even minutes a rainbow fills the ring, one LED
   // every 5 seconds. In odd minutes each color burns out to black. This
   // ring is mounted turned, so its top LED is 4.
-  // { SHOW_SECONDS, HUE_WHEEL, RAINBOW_EMBER, 4 },
+  // { SHOW_SECONDS, RAINBOW_GLOW, RAINBOW_EMBER, 4 },
 };
 
 // Turn on by itself when plugged in? true = yes, false = wait for the button
@@ -177,9 +177,11 @@ const uint32_t ACCELERATED_SPEED = 60;
 //  Most people never need to change these.
 // =====================================================================
 
-// Brightness, from 0 (off) to 255 (full). Keep it low when the clock is
-// powered from a computer's USB port.
-#define BRIGHTNESS 60
+// Brightness of all the LEDs, in %: 0 = off, 100 = full. Keep it low when
+// the clock is powered from a computer's USB port. Every color is dimmed
+// by it, so a dim color dims even more.
+const uint8_t BRIGHTNESS_PERCENT = 25;
+static_assert(BRIGHTNESS_PERCENT <= 100, "BRIGHTNESS_PERCENT goes up to 100");
 
 // The most current the rings may draw, so the clock dims itself instead
 // of asking too much from its power supply:
@@ -191,8 +193,11 @@ const uint32_t ACCELERATED_SPEED = 60;
 // This is an estimate, not a measurement: keep your fuses.
 const PowerLimit RING_POWER = { 400, 20 };
 
-// Flicker speed: lower = faster
-const uint8_t FLICKER_TIME_DIV = 3;
+// How fast flames flicker, in %: 100 = normal, 200 = twice as fast,
+// 50 = half as fast
+const uint16_t FLICKER_SPEED_PERCENT = 100;
+static_assert(FLICKER_SPEED_PERCENT >= 1 && FLICKER_SPEED_PERCENT <= 1000,
+              "FLICKER_SPEED_PERCENT goes from 1 to 1000");
 
 // How often the LEDs are updated, in thousandths of a second
 const unsigned long FRAME_MS = 30;
@@ -647,7 +652,7 @@ void setup() {
 #ifdef USE_HADES
   FastLED.addLeds<HADES_CHIP, HADES_PIN, HADES_ORDER>(hadesLeds, hades.ledCount);
 #endif
-  FastLED.setBrightness(BRIGHTNESS);
+  FastLED.setBrightness(BRIGHTNESS_PERCENT * 255 / 100);
 
 #ifdef USE_RTC
   if (!rtc.begin()) {
