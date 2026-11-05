@@ -26,9 +26,18 @@
 //                       Hold again for the next one. The clock remembers
 //                       your choice, even when unplugged.
 //
+//  TEMPLE SCENES (optional, all switched off)
+//  The Arduino can also light the temples of the Sanctuary, Asgard,
+//  Poseidon and Hades scenes: each temple lights up in its hour. Set
+//  them up in the Scenes.h tab. See SCENES.md.
+//
 //  WIRING (Arduino Nano or Uno)
 //    LED ring ............ 5V to 5V, GND to GND, DIN to pin D6
 //                          (ring 2 to D7, ring 3 to D8, ring 4 to D9)
+//    Temple scenes ....... DIN to pin D10 (Sanctuary), D11 (Asgard),
+//                          D12 (Poseidon), A0 (Hades). Each scene on its
+//                          own 5V power supply, with its GND joined to the
+//                          Arduino's GND.
 //    Button .............. one leg to pin D2, the other leg to GND
 //    Clock module (RTC) .. optional. SDA to A4, SCL to A5, VCC to 5V, GND to GND
 //
@@ -41,19 +50,17 @@
 //  Keep these files together in a folder called FlameClock. The Arduino
 //  IDE shows them as tabs.
 //    FlameClock.ino ... this file: your clocks and settings
-//    Flames.h ......... the flames
-//    Colors.h ......... the named colors the flames use
+//    Flames.h ......... the clock's flames
+//    Scenes.h ......... the temple scenes
+//    TempleLooks.h .... the temples' looks
+//    Colors.h ......... the named colors the flames and looks use
 //  The building blocks (no need to open them):
 //    LookTypes.h ...... what a look (a flame) is
 //    ClockTypes.h ..... what a clock (a ring) is
+//    SceneTypes.h ..... what a temple and a scene are
 //    Effects.h ........ how looks are drawn
+//    SceneDriver.h .... how scenes are drawn
 //    Power.h .......... the power limit
-//
-//  NEW IN THIS VERSION
-//  A flame is now a list of colors of any length, so the same building
-//  blocks can drive other LED scenes later. The fade NO_FADE is now SNAP
-//  (when fading in) or HOLD (when fading out). The LEDs can also be kept
-//  within a current limit (PART 3).
 //
 // =====================================================================
 
@@ -64,6 +71,8 @@
 #include "Flames.h"
 #include "Effects.h"
 #include "Power.h"
+#include "Scenes.h"
+#include "SceneDriver.h"
 
 // =====================================================================
 //  PART 1: YOUR CLOCKS
@@ -156,15 +165,11 @@ const uint32_t ACCELERATED_SPEED = 60;
 // Tools > Serial Monitor (set to 115200 baud). Handy when asking for help.
 const bool PRINT_TO_SERIAL = false;
 
-// A test strip: a few LEDs on their own pin, playing one look over and
-// over, the way the temple scenes will. Handy for trying out looks, and
-// for checking new LEDs (see TEST_STRIP_ORDER in PART 3). To use it,
-// remove the two slashes in front of the next line, and wire the LEDs'
-// DIN to pin D10 (TEST_STRIP_PIN in PART 3).
-// #define USE_TEST_STRIP
-const Look &TEST_STRIP_LOOK = FIRE;            // Any look from Flames.h
-const uint8_t TEST_STRIP_LEDS = 3;             // How many LEDs
-const uint32_t TEST_STRIP_CYCLE_MS = 2000;     // One cycle of the look (2000 = 2 seconds)
+// The temple scenes follow these modes too: MODE_ACCELERATED runs
+// through their hours faster (their looks keep their own speed),
+// MODE_COLOR_TEST shows every temple's look, first color, and
+// MODE_FREEZE holds them still. ALL_TEMPLES_ON in Scenes.h turns every
+// temple on.
 
 // =====================================================================
 //  PART 3: MORE SETTINGS
@@ -208,14 +213,7 @@ const bool REMEMBER_FLAME_CHOICE = true;
 #define RING3_PIN 8         // The pin for ring 3
 #define RING4_PIN 9         // The pin for ring 4
 
-// The test strip (PART 2)
-#define TEST_STRIP_PIN 10           // The pin for the test strip
-#define TEST_STRIP_CHIP WS2812B     // The LED chip. 5mm LEDs are often PL9823 or APA106.
-#define TEST_STRIP_ORDER GRB        // If red and green look swapped, change to RGB
-                                    // (5mm LEDs are often RGB). Test with SOLID:
-                                    // it should look amber, not green.
-const PowerLimit TEST_STRIP_POWER = { 300, 20 };   // As for RING_POWER, for the
-                                                   // test strip's power supply
+// The temple scenes' pins, chips and power limits are in Scenes.h
 
 // =====================================================================
 //  PART 4: NOTES
@@ -274,9 +272,41 @@ static_assert(FLAME_COUNT >= 1 && FLAME_COUNT <= LED_PER_RING, "FLAME_LIST must 
 // ---------------------------------------------------------------------
 CRGB leds[MAX_RINGS][LED_PER_RING];         // One row of LEDs per ring
 
-#ifdef USE_TEST_STRIP
-CRGB stripLeds[TEST_STRIP_LEDS];            // The test strip's LEDs
+// The temple scenes switched on in Scenes.h: their LEDs, and where each
+// one starts in the flicker pattern
+#ifdef USE_SANCTUARY
+CRGB sanctuaryLeds[ledsIn(SANCTUARY)];
+const Scene sanctuary(SANCTUARY, sanctuaryLeds, SANCTUARY_LIGHTING, SANCTUARY_START, SANCTUARY_POWER, 4000);
 #endif
+#ifdef USE_ASGARD
+CRGB asgardLeds[ledsIn(ASGARD)];
+const Scene asgard(ASGARD, asgardLeds, ASGARD_LIGHTING, ASGARD_START, ASGARD_POWER, 12000);
+#endif
+#ifdef USE_POSEIDON
+CRGB poseidonLeds[ledsIn(POSEIDON)];
+const Scene poseidon(POSEIDON, poseidonLeds, POSEIDON_LIGHTING, POSEIDON_START, POSEIDON_POWER, 20000);
+#endif
+#ifdef USE_HADES
+CRGB hadesLeds[ledsIn(HADES)];
+const Scene hades(HADES, hadesLeds, HADES_LIGHTING, HADES_START, HADES_POWER, 28000);
+#endif
+
+const Scene *const SCENES[] = {
+#ifdef USE_SANCTUARY
+  &sanctuary,
+#endif
+#ifdef USE_ASGARD
+  &asgard,
+#endif
+#ifdef USE_POSEIDON
+  &poseidon,
+#endif
+#ifdef USE_HADES
+  &hades,
+#endif
+  nullptr   // The end of the list
+};
+const int NUM_SCENES = sizeof(SCENES) / sizeof(SCENES[0]) - 1;
 
 // The two flames each ring shows right now. They start as written in
 // PART 1, and the long press changes them.
@@ -359,9 +389,9 @@ int ringLed(int ring, int position) {
 // power supply's limit (PART 3)
 void showLeds() {
   limitPower(leds[0], NUM_CLOCKS * LED_PER_RING, RING_POWER);
-#ifdef USE_TEST_STRIP
-  limitPower(stripLeds, TEST_STRIP_LEDS, TEST_STRIP_POWER);
-#endif
+  for (int i = 0; i < NUM_SCENES; i++) {
+    limitPower(SCENES[i]->leds, SCENES[i]->ledCount, SCENES[i]->power);
+  }
   FastLED.show();
 }
 
@@ -406,25 +436,18 @@ void drawClock(int ring, uint32_t ms, bool steady) {
   const Look &before = *currentFlame[ring][1 - pass];   // The flame of the last lap
 
   for (int position = 0; position < LED_PER_RING; position++) {
+    uint16_t spot = position * 97 + ring * 523;         // The LED's place in the flicker pattern
     CRGB color;
-    uint8_t flicker;
     if (position < flamePosition) {                     // Behind: this flame's trail
-      color = endColor(now, position, LED_PER_RING);
-      flicker = lookFlicker(now);
+      color = drawLook(now, now, 1.0f, position, LED_PER_RING, spot, steady);
     } else if (position > flamePosition) {              // Ahead: the last lap's trail
-      color = endColor(before, position, LED_PER_RING);
-      flicker = lookFlicker(before);
-    } else {                                            // The flame itself
-      color = lookColor(now, endColor(before, position, LED_PER_RING),
-                        progress, position, LED_PER_RING);
-      // The flicker changes over as the flame takes over from the old trail
-      float arrived = arrival(now, progress);
-      flicker = (uint8_t)(lookFlicker(before) + (lookFlicker(now) - lookFlicker(before)) * arrived);
+      color = drawLook(before, before, 1.0f, position, LED_PER_RING, spot, steady);
+    } else {                                            // The flame, taking over from the old trail
+      color = drawLook(now, before, progress, position, LED_PER_RING, spot, steady);
+      if (PRINT_TO_SERIAL && ring == 0) {
+        printFlame(ms, pass, position, drawLook(now, before, progress, position, LED_PER_RING, spot, true));
+      }
     }
-    if (PRINT_TO_SERIAL && ring == 0 && position == flamePosition) {
-      printFlame(ms, pass, position, color);
-    }
-    if (!steady) color.nscale8(flickerScale(position * 97 + ring * 523, flicker));
     leds[ring][ringLed(ring, position)] = color;
   }
 }
@@ -444,29 +467,17 @@ void drawColorTest(int ring) {
   }
 }
 
-#ifdef USE_TEST_STRIP
-// The test strip plays its look over and over. Each cycle starts where
-// the last one ended, so the loop has no jump.
-void drawTestStrip() {
-  const Look &look = TEST_STRIP_LOOK;
-  float phase = (float)(millis() % TEST_STRIP_CYCLE_MS) / (float)TEST_STRIP_CYCLE_MS;
-  for (uint8_t led = 0; led < TEST_STRIP_LEDS; led++) {
-    CRGB from = endColor(look, led, TEST_STRIP_LEDS);
-    stripLeds[led] = renderLook(look, from, phase, led, TEST_STRIP_LEDS, led * 97 + 4000);
-  }
-}
-#endif
-
-// Draws every ring, and the test strip
+// Draws every ring and every temple scene
 void updateDisplay() {
   uint32_t ms = timeOfDay();
   for (int ring = 0; ring < NUM_CLOCKS; ring++) {
     if (BEHAVIOR == MODE_COLOR_TEST) drawColorTest(ring);
     else drawClock(ring, ms, BEHAVIOR == MODE_FREEZE);   // No flicker while frozen
   }
-#ifdef USE_TEST_STRIP
-  drawTestStrip();
-#endif
+  uint32_t speed = (BEHAVIOR == MODE_ACCELERATED) ? ACCELERATED_SPEED : 1;
+  for (int i = 0; i < NUM_SCENES; i++) {
+    drawScene(*SCENES[i], ms, speed, BEHAVIOR == MODE_FREEZE, BEHAVIOR == MODE_COLOR_TEST, ALL_TEMPLES_ON);
+  }
   showLeds();
 }
 
@@ -616,8 +627,18 @@ void setup() {
   if (NUM_CLOCKS >= 2) FastLED.addLeds<WS2812B, RING2_PIN, COLOR_ORDER>(leds[1], LED_PER_RING);
   if (NUM_CLOCKS >= 3) FastLED.addLeds<WS2812B, RING3_PIN, COLOR_ORDER>(leds[2], LED_PER_RING);
   if (NUM_CLOCKS >= 4) FastLED.addLeds<WS2812B, RING4_PIN, COLOR_ORDER>(leds[3], LED_PER_RING);
-#ifdef USE_TEST_STRIP
-  FastLED.addLeds<TEST_STRIP_CHIP, TEST_STRIP_PIN, TEST_STRIP_ORDER>(stripLeds, TEST_STRIP_LEDS);
+  // One data pin per temple scene
+#ifdef USE_SANCTUARY
+  FastLED.addLeds<SANCTUARY_CHIP, SANCTUARY_PIN, SANCTUARY_ORDER>(sanctuaryLeds, sanctuary.ledCount);
+#endif
+#ifdef USE_ASGARD
+  FastLED.addLeds<ASGARD_CHIP, ASGARD_PIN, ASGARD_ORDER>(asgardLeds, asgard.ledCount);
+#endif
+#ifdef USE_POSEIDON
+  FastLED.addLeds<POSEIDON_CHIP, POSEIDON_PIN, POSEIDON_ORDER>(poseidonLeds, poseidon.ledCount);
+#endif
+#ifdef USE_HADES
+  FastLED.addLeds<HADES_CHIP, HADES_PIN, HADES_ORDER>(hadesLeds, hades.ledCount);
 #endif
   FastLED.setBrightness(BRIGHTNESS);
 

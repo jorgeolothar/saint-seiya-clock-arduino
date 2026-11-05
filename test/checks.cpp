@@ -1,8 +1,9 @@
 // Checks for the parts that have no "before" to compare with: color lists
-// of other lengths, the power limit and the test strip. run.sh builds it
-// with the current sketch, test strip switched on.
+// of other lengths, the power limit and the temple scenes. run.sh builds
+// it with the current sketch, every scene switched on.
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "FastLED.h"
 #include "EEPROM.h"
 
@@ -25,6 +26,116 @@ static bool near(CRGB c, CRGB want, int tolerance) {
 }
 
 const CRGB R = CRGB(255, 0, 0), G = CRGB(0, 255, 0), B = CRGB(0, 0, 255);
+const CRGB K = CRGB(0, 0, 0);
+
+// ---- Scenes: a test scene of their own, so editing Scenes.h does not break these ----
+const ColorStop RED_BLUE[] = { { STEADY_FADE, R }, { STEADY_FADE, B } };
+const Look ON_LOOK = { GRADIENT, RED_BLUE, 0, FIXED_COLORS };
+const ColorStop GREEN[] = { { SNAP, G } };
+const Look GREEN_OFF = { GRADIENT, GREEN, 0, FIXED_COLORS };
+
+constexpr Temple TEST_TEMPLES[] = {
+//  hour    LEDs  on       off        cycle  repeat         LEDs on the chain
+  { 1,      2,    ON_LOOK, OFF,       1000,  REPEAT },      // 0, 1
+  { 2,      1,    ON_LOOK, GREEN_OFF, 1000,  ONCE_HOLD },   // 2
+  { 3,      3,    ON_LOOK, OFF,       1000,  ONCE_OFF },    // 3, 4, 5
+  { 12,     1,    ON_LOOK, OFF,       1000,  REPEAT },      // 6
+  { ALWAYS, 2,    ON_LOOK, OFF,       0,     REPEAT },      // 7, 8
+};
+CRGB testLeds[ledsIn(TEST_TEMPLES)];
+const PowerLimit TEST_POWER = { 1000, 20 };
+const Scene spotlight(TEST_TEMPLES, testLeds, SPOTLIGHT, clockTime(1, 0, 0), TEST_POWER, 0);
+const Scene fill(TEST_TEMPLES, testLeds, FILL, clockTime(1, 0, 0), TEST_POWER, 0);
+
+constexpr Temple EIGHT_TEMPLES[] = {
+  { 1, 1, ON_LOOK, OFF, 1000, REPEAT }, { 2, 1, ON_LOOK, OFF, 1000, REPEAT }, { 3, 1, ON_LOOK, OFF, 1000, REPEAT },
+  { 4, 1, ON_LOOK, OFF, 1000, REPEAT }, { 5, 1, ON_LOOK, OFF, 1000, REPEAT }, { 6, 1, ON_LOOK, OFF, 1000, REPEAT },
+  { 7, 1, ON_LOOK, OFF, 1000, REPEAT }, { 8, 1, ON_LOOK, OFF, 1000, REPEAT },   // the throne
+};
+CRGB eightLeds[ledsIn(EIGHT_TEMPLES)];
+const Scene eight(EIGHT_TEMPLES, eightLeds, SPOTLIGHT, clockTime(0, 0, 0), TEST_POWER, 0);
+
+// Which temples of a scene are on at a time of day, as a string like "1....": 1 = on
+static const char *onAt(const Scene &scene, uint32_t ms, bool allOn = false) {
+  static char text[32];
+  uint8_t i = 0;
+  for (; i < scene.templeCount; i++) {
+    uint32_t onFor;
+    text[i] = templeOn(scene, scene.temples[i], ms, allOn, onFor) ? '1' : '.';
+  }
+  text[i] = 0;
+  return text;
+}
+
+static bool onAtIs(const Scene &scene, uint32_t ms, const char *want, bool allOn = false) {
+  const char *got = onAt(scene, ms, allOn);
+  bool ok = strcmp(got, want) == 0;
+  if (!ok) printf("        got %s, wanted %s\n", got, want);
+  return ok;
+}
+
+static bool ledsAre(const Scene &scene, const CRGB *want) {
+  bool ok = true;
+  for (uint16_t i = 0; i < scene.ledCount; i++) ok = ok && scene.leds[i] == want[i];
+  if (!ok) {
+    printf("        got");
+    for (uint16_t i = 0; i < scene.ledCount; i++) printf(" %02x%02x%02x", scene.leds[i].r, scene.leds[i].g, scene.leds[i].b);
+    printf("\n");
+  }
+  return ok;
+}
+
+static void checkScenes() {
+  printf("Scene layout (temples of 2, 1, 3, 1 and 2 LEDs):\n");
+  check(spotlight.templeCount == 5, "5 temples");
+  check(spotlight.ledCount == 9 && ledsIn(TEST_TEMPLES) == 9, "9 LEDs, counted for you");
+  check(spotlight.hours == 12, "12 hours a cycle: the highest temple hour");
+  check(eight.hours == 8, "7 temples and a throne: 8 hours a cycle");
+
+  printf("SPOTLIGHT, hour 1 starting at 1 o'clock (temples: hours 1, 2, 3, 12, ALWAYS):\n");
+  check(onAtIs(spotlight, clockTime(1, 30, 0), "1...1"), "01:30: hour 1, and ALWAYS");
+  check(onAtIs(spotlight, clockTime(2, 0, 0), ".1..1"), "02:00: hour 2 starts on the dot");
+  check(onAtIs(spotlight, clockTime(4, 0, 0), "....1"), "04:00: hours 4 to 11 have no temple");
+  check(onAtIs(spotlight, clockTime(0, 30, 0), "...11"), "00:30: hour 12");
+  check(onAtIs(spotlight, clockTime(12, 30, 0), "...11"), "12:30: hour 12 again");
+  check(onAtIs(spotlight, clockTime(13, 30, 0), "1...1"), "13:30: the second cycle of the day");
+  check(onAtIs(spotlight, clockTime(1, 30, 0), "11111", true), "ALL_TEMPLES_ON turns every temple on");
+
+  printf("FILL:\n");
+  check(onAtIs(fill, clockTime(2, 30, 0), "11..1"), "02:30: hours 1 and 2 stay on");
+  check(onAtIs(fill, clockTime(5, 0, 0), "111.1"), "05:00: hours 1 to 3");
+  check(onAtIs(fill, clockTime(0, 59, 59), "11111"), "00:59:59: the last hour, all on");
+  check(onAtIs(fill, clockTime(1, 0, 0), "1...1"), "01:00: the cycle starts again");
+
+  printf("8 hours a cycle, from midnight:\n");
+  check(onAtIs(eight, clockTime(0, 30, 0), "1......."), "00:30: temple 1");
+  check(onAtIs(eight, clockTime(7, 30, 0), ".......1"), "07:30: the throne, once the 7 temples are done");
+  check(onAtIs(eight, clockTime(8, 30, 0), "1......."), "08:30: temple 1 again");
+  check(onAtIs(eight, clockTime(23, 59, 0), ".......1"), "23:59: the throne, then midnight starts cleanly");
+
+  printf("Drawing (GRADIENT red then blue, 1 second a cycle, no flicker):\n");
+  drawScene(spotlight, clockTime(1, 0, 0.5), 1, true, false, false);
+  const CRGB first[9] = { R, R, G, K, K, K, K, B, B };
+  check(ledsAre(spotlight, first),
+        "01:00:00.5: hour 1 on (red), the others show their off looks, ALWAYS with cycle 0 holds blue");
+  drawScene(spotlight, clockTime(2, 0, 0.5), 1, true, false, false);
+  const CRGB second[9] = { K, K, R, K, K, K, K, B, B };
+  check(ledsAre(spotlight, second), "02:00:00.5: only the LED of hour 2 changes");
+
+  check(drawTemple(TEST_TEMPLES[1], true, 0, 0, 0, true) == G, "turning on fades in from the off look");
+  check(drawTemple(TEST_TEMPLES[0], true, 1000, 0, 0, true) == B, "REPEAT: the 2nd cycle starts where the 1st ended");
+  check(drawTemple(TEST_TEMPLES[0], true, 1500, 0, 0, true) == R, "REPEAT: and plays again");
+  check(drawTemple(TEST_TEMPLES[1], true, 5000, 0, 0, true) == B, "ONCE_HOLD: stays on the last color");
+  check(drawTemple(TEST_TEMPLES[2], true, 5000, 0, 0, true) == K, "ONCE_OFF: turns to the off look");
+
+  drawScene(spotlight, clockTime(1, 0, 30), 60, true, false, false);
+  check(spotlight.leds[0] == R, "sped up 60 times: 30 clock seconds play as half a real second");
+  drawScene(spotlight, clockTime(5, 0, 0), 1, true, true, false);
+  check(spotlight.leds[3] == R && spotlight.leds[6] == R, "color test: every temple shows its on look's first color");
+
+  printf("The scenes in Scenes.h:\n");
+  check(NUM_SCENES == 4, "all four scenes compile (run.sh switches them all on)");
+}
 
 int main() {
   setup();
@@ -62,14 +173,7 @@ int main() {
   limitPower(white, 12, limit);
   check(white[0] == CRGB(255, 255, 255), "left alone when already under the limit (brightness 60)");
 
-  printf("Test strip:\n");
-  const Look &look = TEST_STRIP_LOOK;
-  CRGB from = endColor(look, 0, TEST_STRIP_LEDS);
-  check(near(lookColor(look, from, 0.0f, 0, TEST_STRIP_LEDS), lookColor(look, from, 0.9999f, 0, TEST_STRIP_LEDS), 2),
-        "the loop has no jump: the end of a cycle matches the start");
-  fakeMillis = 500;
-  drawTestStrip();
-  check(!(stripLeds[0] == CRGB(0, 0, 0)), "the strip lights up");
+  checkScenes();
 
   printf(failures ? "%d check(s) FAILED\n" : "All checks passed\n", failures);
   return failures ? 1 : 0;

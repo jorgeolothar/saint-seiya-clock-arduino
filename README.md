@@ -82,9 +82,10 @@ At about 3:30 in the afternoon:
    | File | What's in it |
    |---|---|
    | [FlameClock.ino](FlameClock/FlameClock.ino) | Your clocks and settings. Open this one. |
-   | [Flames.h](FlameClock/Flames.h) | The flames. |
+   | [Flames.h](FlameClock/Flames.h) | The clock's flames. |
    | [Colors.h](FlameClock/Colors.h) | The named colors the flames use. |
-   | [LookTypes.h](FlameClock/LookTypes.h), [ClockTypes.h](FlameClock/ClockTypes.h), [Effects.h](FlameClock/Effects.h), [Power.h](FlameClock/Power.h) | The building blocks. No need to open them. |
+   | [Scenes.h](FlameClock/Scenes.h), [TempleLooks.h](FlameClock/TempleLooks.h) | Optional temple scenes, switched off. See [SCENES.md](SCENES.md). |
+   | [LookTypes.h](FlameClock/LookTypes.h), [ClockTypes.h](FlameClock/ClockTypes.h), [SceneTypes.h](FlameClock/SceneTypes.h), [Effects.h](FlameClock/Effects.h), [SceneDriver.h](FlameClock/SceneDriver.h), [Power.h](FlameClock/Power.h) | The building blocks. No need to open them. |
 
 2. Install the libraries (see [Required Libraries](#-required-libraries)).
 3. Open **FlameClock.ino** in the Arduino IDE. The other files show up as tabs.
@@ -162,8 +163,6 @@ const Look FIRE               = { FLAME, FIRE_COLORS, 70, FIXED_COLORS };
 
 > 💡 **Tip:** how one flame takes over from the other is set by the fade of the arriving flame's **first color**. A flame starting with `SNAP` (like `SPARK`) replaces the other flame's trail at once.
 
-⚠️ **Flames from an older version:** `NO_FADE` is gone. As a fade in it becomes `SNAP`, as a fade out it becomes `HOLD`.
-
 **Colors** are named in `Colors.h`, written as `CRGB(red, green, blue)` with numbers from 0 to 255:
 
 ```cpp
@@ -204,20 +203,6 @@ In **PART 2** of `FlameClock.ino`, set `BEHAVIOR` to one of these:
 
 Set it back to `MODE_REGULAR` when you're done.
 
-### 🧵 Test strip
-
-A few LEDs on pin **D10** can play one look over and over, to try out looks or check new LEDs. Remove the two slashes in front of `#define USE_TEST_STRIP` in **PART 2**, and pick the look, the number of LEDs and the cycle length below it. For LEDs other than WS2812B (5mm LEDs are often PL9823 or APA106, with `RGB` color order), change `TEST_STRIP_CHIP` and `TEST_STRIP_ORDER` in **PART 3**. Play `SOLID`: it should look amber, not green.
-
-## ⚡ Power Limit
-
-The clock estimates how much current its LEDs draw and dims them if it's more than the limit you set in **PART 3**:
-
-```cpp
-const PowerLimit RING_POWER = { 400, 20 };   // most milliamps, milliamps per color
-```
-
-**Milliamps per color** is what red, green or blue of one LED draws at full (about 20 for WS2812B; check your LEDs' datasheet). This is an estimate, not a measurement: keep the fuses in your wiring.
-
 ### 🎯 Finding the top LED
 
 `MODE_COLOR_TEST` shows every ring like this:
@@ -227,6 +212,20 @@ const PowerLimit RING_POWER = { 400, 20 };   // most milliamps, milliamps per co
 | 🔥 1st flame | 2nd flame's trail | 🔥 2nd flame | 1st flame's trail |
 
 With top LED set to `1`, the single LED in the 1st flame's color should be at 12 o'clock. If it's at another hour, set top LED to **13 minus that hour**. For example, if it's at 3 o'clock, use `10`.
+
+## 🏛️ Temple Scenes
+
+The sketch can also light temple scenes on extra pins, with temples that light up hour by hour. They're optional and switched off, so the clock doesn't need them. See **[SCENES.md](SCENES.md)**.
+
+## ⚡ Power Limit
+
+The clock estimates how much current its LEDs draw and dims them if it's more than the limit you set in `RING_POWER`, in **PART 3**:
+
+```cpp
+const PowerLimit RING_POWER = { 400, 20 };   // most milliamps, milliamps per color
+```
+
+**Milliamps per color** is what red, green or blue of one LED draws at full (about 20 for WS2812B; check your LEDs' datasheet). This is an estimate, not a measurement: keep the fuses in your wiring.
 
 ## 🔌 Wiring
 
@@ -291,6 +290,5 @@ Install these through:
 - Can operate **without an RTC module**, using a built-in software clock
 - **Test modes** for checking colors, timing and the top LED, and a sped-up day for demos
 - Supports **1 to 4 LED rings**, each with its own top LED
-- Flames are **color lists of any length**, built from parts that can drive other LED scenes
+- Flames are **color lists of any length**
 - A **power limit** that dims the LEDs to stay within the power supply's current
-- A **test strip** for trying out looks on separate LEDs

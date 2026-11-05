@@ -55,3 +55,10 @@ struct StubFastLED {
   void clear() {}
 };
 extern StubFastLED FastLED;
+
+// Names the real FastLED takes as macros when built for the Uno or Nano.
+// They are defined here the same way, so a sketch that uses one of them as
+// a name fails here as it would in the Arduino IDE. LOOP comes from
+// platforms/avr/clockless_avr.h and LEDS from FastLED.h.
+#define LOOP asm __volatile__("");   // As in FastLED, less its assembly
+#define LEDS FastLED

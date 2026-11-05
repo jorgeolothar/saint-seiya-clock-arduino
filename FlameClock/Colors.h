@@ -30,6 +30,11 @@ const CRGB ICE_WHITE   = CRGB(200, 245, 255);
 const CRGB ICE_BLUE    = CRGB(0, 191, 255);
 const CRGB NEON_PINK   = CRGB(255, 0, 160);
 const CRGB DIM_TEAL    = CRGB(0, 60, 80);
+const CRGB CINDER      = CRGB(40, 6, 0);       // a dim, glowing red
+const CRGB GOLD        = CRGB(255, 170, 20);
+const CRGB SEA_BLUE    = CRGB(0, 40, 160);
+const CRGB VIOLET      = CRGB(150, 40, 255);
+const CRGB DEEP_PURPLE = CRGB(40, 0, 70);
 const CRGB BLACK       = CRGB(0, 0, 0);        // off. As a last color: no trail
 
 // Colors for WHEEL_COLORS looks, written as:
