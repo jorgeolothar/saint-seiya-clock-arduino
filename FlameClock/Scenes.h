@@ -20,6 +20,7 @@
 //    look, and street lamps that fail on their own are one group each.
 //
 //    { hour, LEDs, on look, off look, cycle ms, repeat },
+//    { hour, LEDs, on look, off look, cycle ms, repeat, amount },
 //
 //    hour ....... which hour of the scene's cycle the group is on, from
 //                 1. ALWAYS = on all the time. The cycle is as long as
@@ -36,6 +37,10 @@
 //                   REPEAT ..... play it again, and again
 //                   ONCE_HOLD .. stay on its last color
 //                   ONCE_OFF ... turn to the off look
+//    amount ..... optional: the on look's amount for this group only,
+//                 so groups can share a look but flicker, fail or
+//                 strike more or less (see SCENES.md). Leave it out to
+//                 use the look's own amount.
 //
 //    When a group turns on, its look fades in from the off look.
 //

@@ -34,6 +34,7 @@ const CRGB CINDER      = CRGB(40, 6, 0);       // a dim, glowing red
 const CRGB DARK_RED    = CRGB(45, 0, 2);       // a deep, dim red
 const CRGB GOLD        = CRGB(255, 170, 20);
 const CRGB SEA_BLUE    = CRGB(0, 40, 160);
+const CRGB STORM_BLUE  = CRGB(0, 6, 30);       // a dim, stormy night blue
 const CRGB VIOLET      = CRGB(150, 40, 255);
 const CRGB DEEP_PURPLE = CRGB(40, 0, 70);
 const CRGB BLACK       = CRGB(0, 0, 0);        // off. As a last color: no trail

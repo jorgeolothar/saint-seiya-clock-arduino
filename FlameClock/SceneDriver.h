@@ -40,7 +40,9 @@ inline bool groupOn(const Scene &scene, const Group &group, uint32_t ms, bool al
 // 'groupSpot' the group's: a failing look fails the whole group at once.
 inline CRGB drawGroup(const Group &group, bool on, uint32_t onForMs,
                       uint8_t led, uint16_t spot, uint16_t groupSpot, bool steady) {
-  const Look *look = group.on;
+  Look onLook = *group.on;               // The on look, with the group's own amount
+  if (group.amount != LOOK_AMOUNT) onLook.amount = group.amount;
+  const Look *look = &onLook;
   const Look *before = group.off;        // The first cycle fades in from the off look
   float phase = 1.0f;                    // 1.0 = the look's last color
 
@@ -51,7 +53,7 @@ inline CRGB drawGroup(const Group &group, bool on, uint32_t onForMs,
     if (cycles == 0) {                   // The first cycle
       phase = (float)onForMs / (float)group.cycleMs;
     } else if (group.repeat == REPEAT) {   // Again: each cycle starts where the last one ended
-      before = group.on;
+      before = &onLook;
       phase = (float)(onForMs % group.cycleMs) / (float)group.cycleMs;
     } else if (group.repeat == ONCE_OFF) {
       look = group.off;

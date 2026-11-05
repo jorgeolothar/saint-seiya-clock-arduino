@@ -51,6 +51,11 @@ const Look BEACON                 = { PULSES, BEACON_COLORS, 3, FIXED_COLORS };
 const ColorStop FAULTY_LIGHT_COLORS[] = { { SNAP, ICE_WHITE } };
 const Look FAULTY_LIGHT           = { FAILING, FAULTY_LIGHT_COLORS, 30, FIXED_COLORS };
 
+// Lightning: a dim stormy blue sky, struck now and then by 1 to 4 quick
+// white flashes. Its cycle ms doesn't matter: use 0.
+const ColorStop LIGHTNING_COLORS[] = { { SNAP, ICE_WHITE }, { EARLY_FADE, STORM_BLUE } };
+const Look STORM_SKY              = { LIGHTNING, LIGHTNING_COLORS, 30, FIXED_COLORS };
+
 // Deep sea blue that drifts into teal and back. For Poseidon's temples.
 const ColorStop SEA_COLORS[]      = { { SMOOTH_FADE, DIM_TEAL }, { SMOOTH_FADE, SEA_BLUE } };
 const Look SEA                    = { GRADIENT, SEA_COLORS, 0, FIXED_COLORS };
