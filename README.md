@@ -31,6 +31,8 @@ When the flame reaches an LED, it slowly lights up. Halfway through, it's at ful
 
 A **black trail** leaves the ring dark behind the flame.
 
+That's how most of the built-in flames work. Some differ: `SPARK` flashes on at once, and flames you make can have more colors (see [Making your own flame](#️-making-your-own-flame)).
+
 ## 🏛️ The Sanctuary Fire Clock (the default)
 
 > The clock from the **Sanctuary chapter**: twelve blue flames that burn out one per hour while the Bronze Saints race through the twelve zodiac temples.
@@ -69,11 +71,16 @@ At about 3:30 in the afternoon:
 
 ## 🔘 Button Controls
 
+<details>
+<summary>Show the button controls</summary>
+
 - **Short press** → turns the clock **on or off**.
 - **Hold for 1 second** → changes the flame you see moving to the **next flame**.
   - Each ring shows the new flame's number like the hours on a clock: flame 3 lights the LEDs at 1, 2 and 3 o'clock.
   - Hold again for the next one.
   - The clock remembers your choice, even when unplugged.
+
+</details>
 
 ## 🚀 Getting Started
 
@@ -87,7 +94,7 @@ At about 3:30 in the afternoon:
    | [Scenes.h](FlameClock/Scenes.h), [TempleLooks.h](FlameClock/TempleLooks.h) | Optional temple scenes, switched off. See [SCENES.md](SCENES.md). |
    | [LookTypes.h](FlameClock/LookTypes.h), [ClockTypes.h](FlameClock/ClockTypes.h), [SceneTypes.h](FlameClock/SceneTypes.h), [Effects.h](FlameClock/Effects.h), [SceneDriver.h](FlameClock/SceneDriver.h), [Power.h](FlameClock/Power.h) | The building blocks. No need to open them. |
 
-2. Install the libraries (see [Required Libraries](#-required-libraries)).
+2. Install the libraries (see [Wiring and Libraries](#-wiring-and-libraries)).
 3. Open **FlameClock.ino** in the Arduino IDE. The other files show up as tabs.
 4. Set up your rings in **PART 1** (see below), then upload.
 
@@ -109,7 +116,7 @@ Each line is: **what it shows**, **1st flame**, **2nd flame**, **top LED**.
 
 - **What it shows:** `SHOW_HOURS`, `SHOW_MINUTES` or `SHOW_SECONDS`.
 - **1st and 2nd flame:** any flame name from `Flames.h`. Both can be the same flame.
-- **Top LED:** which LED is at 12 o'clock. Usually `1`. If your ring is turned, see [Finding the top LED](#-finding-the-top-led).
+- **Top LED:** which LED is at 12 o'clock. Usually `1`. If your ring is turned, see *Finding the top LED* under [Testing and Troubleshooting](#-testing-and-troubleshooting).
 
 ## 🎨 The Flames
 
@@ -130,6 +137,9 @@ These flames come built in. The number is what a ring shows when you pick it wit
 
 ### ✏️ Making your own flame
 
+<details>
+<summary>Show how to make a flame</summary>
+
 Flames live in **Flames.h**. Each one is two lines. The first is its **color list**, in the order the colors show on an LED, with how to fade into each one:
 
 ```cpp
@@ -139,7 +149,20 @@ const Look FIRE               = { FLAME, FIRE_COLORS, 70, FIXED_COLORS };
 
 > "FIRE fades smoothly into ORANGE, then fades smoothly into a RED trail, with 70% flicker, using the colors as written."
 
-**The color list:** the LED fades from its old color into the 1st color, then into the 2nd, and so on. Each color gets an equal part of the step. The **last color is the trail**, what the flame leaves behind (`BLACK` = no trail). The list can be any length: with 2 colors, the 1st is the flame at its brightest, halfway through the step.
+**The color list** can have as many colors as you like, not just two. The LED fades from its old color into the 1st color, then into the 2nd, and so on. Each color gets an equal share of the step: half each with 2 colors, a third each with 3. The **last color is the trail**, what the flame leaves behind (`BLACK` = no trail).
+
+For example, a flame that burns white-hot, cools to orange, and leaves a red trail:
+
+```cpp
+const ColorStop BLAZE_COLORS[] = { { SMOOTH_FADE, SPARK_WHITE }, { SMOOTH_FADE, ORANGE }, { SMOOTH_FADE, RED } };
+const Look BLAZE               = { FLAME, BLAZE_COLORS, 70, FIXED_COLORS };
+```
+
+| 1st third | 2nd third | Last third |
+|:---:|:---:|:---:|
+| fades into white | white cools to orange | orange settles into the red trail |
+
+With only one color, the LED fades into it and stays: `SOLID` is a one-color flame.
 
 **The second line:**
 
@@ -148,7 +171,7 @@ const Look FIRE               = { FLAME, FIRE_COLORS, 70, FIXED_COLORS };
 | **Effect** | `FLAME` = flickers. `GRADIENT` = steady |
 | **Color list** | The name of the first line |
 | **Flicker %** | `0` = steady, `100` = strongest flicker. `GRADIENT` ignores it |
-| **Colors** | `FIXED_COLORS` = the colors as written. `WHEEL_COLORS` = a rainbow around the ring |
+| **Colors** | `FIXED_COLORS` = the colors as written. `WHEEL_COLORS` = a rainbow across the LEDs: around a ring, or across a temple's own LEDs |
 
 **The fades:**
 
@@ -179,6 +202,8 @@ const CRGB WHEEL_PALE = wheelColor(100, 40);   // full brightness, a bit pale
 
 To let the button pick your new flame, add its name to `FLAME_LIST` at the bottom of `Flames.h` (up to 12 flames).
 
+</details>
+
 ### 🔁 Pairing flames
 
 How the two flames on a ring work together depends on their trails. Some ideas for an hours ring:
@@ -189,29 +214,6 @@ How the two flames on a ring work together depends on their trails. Some ideas f
 | 🌅 Fill & empty | `{ SHOW_HOURS, COOL, EMBER, 1 }` | The morning fills the ring, the afternoon empties it. This is the Sanctuary Fire Clock |
 | 🔄 Always lit | `{ SHOW_HOURS, COOL, FIRE, 1 }` | The ring is never dark: each flame replaces the other's trail |
 | 🔃 Empty & fill | `{ SHOW_HOURS, FROST, FIRE, 1 }` | The morning empties the ring, the afternoon fills it |
-
-## 🧪 Testing
-
-In **PART 2** of `FlameClock.ino`, set `BEHAVIOR` to one of these:
-
-| Setting | What the clock does |
-|---|---|
-| `MODE_REGULAR` | Shows the time. The normal setting |
-| `MODE_ACCELERATED` | A sped-up day, to watch a whole day go by in minutes |
-| `MODE_COLOR_TEST` | Holds still and shows the colors of both flames |
-| `MODE_FREEZE` | Holds still at one moment, to look closely at the colors |
-
-Set it back to `MODE_REGULAR` when you're done.
-
-### 🎯 Finding the top LED
-
-`MODE_COLOR_TEST` shows every ring like this:
-
-| 12 | 1 – 5 | 6 | 7 – 11 |
-|:---:|:---:|:---:|:---:|
-| 🔥 1st flame | 2nd flame's trail | 🔥 2nd flame | 1st flame's trail |
-
-With top LED set to `1`, the single LED in the 1st flame's color should be at 12 o'clock. If it's at another hour, set top LED to **13 minus that hour**. For example, if it's at 3 o'clock, use `10`.
 
 ## 🏛️ Temple Scenes
 
@@ -227,7 +229,10 @@ const PowerLimit RING_POWER = { 400, 20 };   // most milliamps, milliamps per co
 
 **Milliamps per color** is what red, green or blue of one LED draws at full (about 20 for WS2812B; check your LEDs' datasheet). This is an estimate, not a measurement: keep the fuses in your wiring.
 
-## 🔌 Wiring
+## 🔌 Wiring and Libraries
+
+<details>
+<summary>Show the wiring and the libraries to install</summary>
 
 Designed for an **Arduino Nano or Arduino Uno**.
 
@@ -262,7 +267,7 @@ A DS3231 clock module keeps the real time, even while the clock is unplugged. Wi
 
 To use it, remove the two slashes in front of `#define USE_RTC` in **PART 1**. The first time, the module is set to your computer's time when you upload, so check your computer's clock first. **PART 4** of `FlameClock.ino` explains how to change the time for daylight saving, and which battery to use.
 
-## 📚 Required Libraries
+### 📚 Required Libraries
 
 Install these through:
 
@@ -271,15 +276,52 @@ Install these through:
 - **FastLED** — always required
 - **RTClib** — only required when using an RTC clock module
 
-## 🩺 Troubleshooting
+</details>
+
+## 🧪 Testing and Troubleshooting
+
+<details>
+<summary>Show the test modes, finding the top LED, and fixes for common problems</summary>
+
+### 🎛️ Test modes
+
+In **PART 2** of `FlameClock.ino`, set `BEHAVIOR` to one of these:
+
+| Setting | What the clock does |
+|---|---|
+| `MODE_REGULAR` | Shows the time. The normal setting |
+| `MODE_ACCELERATED` | A sped-up day, to watch a whole day go by in minutes |
+| `MODE_COLOR_TEST` | Holds still and shows the colors of both flames |
+| `MODE_FREEZE` | Holds still at one moment, to look closely at the colors |
+
+Set it back to `MODE_REGULAR` when you're done.
+
+### 🎯 Finding the top LED
+
+`MODE_COLOR_TEST` shows every ring like this:
+
+| 12 | 1 – 5 | 6 | 7 – 11 |
+|:---:|:---:|:---:|:---:|
+| 🔥 1st flame | 2nd flame's trail | 🔥 2nd flame | 1st flame's trail |
+
+With top LED set to `1`, the single LED in the 1st flame's color should be at 12 o'clock. If it's at another hour, set top LED to **13 minus that hour**. For example, if it's at 3 o'clock, use `10`.
+
+### 🩺 Troubleshooting
 
 - **Nothing lights up:** check the 5V, GND and DIN wires. Press the button once, in case the clock is off.
 - **Red and green look swapped:** change `COLOR_ORDER` to `RGB` in **PART 3**.
 - **The first LED keeps blinking red:** the clock module wasn't found. Check its SDA and SCL wires.
-- **The flame starts in the wrong place:** see [Finding the top LED](#-finding-the-top-led).
+- **The flame starts in the wrong place:** see [Finding the top LED](#-finding-the-top-led) above.
 - **A flame you changed doesn't show:** the clock remembers the flame picked with the button. Uploading the changed sketch clears that.
 
+</details>
+
 ## 🛠️ Changes from the Original Sketch
+
+<details>
+<summary>Show what changed</summary>
+
+The original sketch comes with the 3D model: [🧩 **Saint Seiya Clock on MakerWorld**](https://makerworld.com/en/models/930419-saint-seiya-clock?from=search#profileId-1965434). This version changes it:
 
 - Comments translated to English
 - Replaced the original hour countdown with a **moving, flickering flame**
@@ -292,3 +334,5 @@ Install these through:
 - Supports **1 to 4 LED rings**, each with its own top LED
 - Flames are **color lists of any length**
 - A **power limit** that dims the LEDs to stay within the power supply's current
+
+</details>
