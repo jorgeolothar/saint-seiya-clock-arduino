@@ -47,9 +47,9 @@
 //    2. color list ... the name of the first line
 //    3. flicker % .... 0 = steady, 100 = strongest. GRADIENT ignores it.
 //    4. colors ....... FIXED_COLORS = the colors as written
-//                      WHEEL_COLORS = a rainbow around the ring (each LED
+//                      RAINBOW_COLORS = a rainbow around the ring (each LED
 //                      takes its hue from its place on the ring). Use the
-//                      wheelColor() colors from Colors.h with it.
+//                      rainbowColor() colors from Colors.h with it.
 //
 //  The fades:
 //    SNAP .......... switches to the color at once, at the start of its part
@@ -64,15 +64,15 @@
 // =====================================================================
 
 // Orange flame with a red trail
-const ColorStop FIRE_COLORS[]          = { { SMOOTH_FADE, ORANGE },      { SMOOTH_FADE, RED } };
+const ColorStop FIRE_COLORS[]          = { { SMOOTH_FADE, ORANGE },       { SMOOTH_FADE, RED } };
 const Look FIRE                        = { FLAME, FIRE_COLORS, 70, FIXED_COLORS };
 
 // Icy white flame with an ice blue trail
-const ColorStop COOL_COLORS[]          = { { SMOOTH_FADE, ICE_WHITE },   { SMOOTH_FADE, ICE_BLUE } };
+const ColorStop COOL_COLORS[]          = { { SMOOTH_FADE, ICE_WHITE },    { SMOOTH_FADE, ICE_BLUE } };
 const Look COOL                        = { FLAME, COOL_COLORS, 70, FIXED_COLORS };
 
 // A bright flash that dies out quickly and leaves no trail
-const ColorStop SPARK_COLORS[]         = { { SNAP, SPARK_WHITE },        { EARLY_FADE, BLACK } };
+const ColorStop SPARK_COLORS[]         = { { SNAP, SPARK_WHITE },         { EARLY_FADE, BLACK } };
 const Look SPARK                       = { FLAME, SPARK_COLORS, 90, FIXED_COLORS };
 
 // Steady amber, no fading and no flicker
@@ -80,29 +80,29 @@ const ColorStop SOLID_COLORS[]         = { { SNAP, AMBER } };
 const Look SOLID                       = { GRADIENT, SOLID_COLORS, 0, FIXED_COLORS };
 
 // A rainbow around the ring: pale flame, deep colored trail
-const ColorStop HUE_WHEEL_COLORS[]     = { { SMOOTH_FADE, WHEEL_PALE },  { SMOOTH_FADE, WHEEL_DEEP } };
-const Look HUE_WHEEL                   = { FLAME, HUE_WHEEL_COLORS, 30, WHEEL_COLORS };
+const ColorStop RAINBOW_GLOW_COLORS[]  = { { SMOOTH_FADE, RAINBOW_PALE }, { SMOOTH_FADE, RAINBOW_DEEP } };
+const Look RAINBOW_GLOW                = { FLAME, RAINBOW_GLOW_COLORS, 30, RAINBOW_COLORS };
 
 // An orange flame that burns out quickly to black. After COOL, it is the
 // countdown of the Sanctuary fire clock.
-const ColorStop EMBER_COLORS[]         = { { SMOOTH_FADE, DEEP_ORANGE }, { EARLY_FADE, BLACK } };
+const ColorStop EMBER_COLORS[]         = { { SMOOTH_FADE, DEEP_ORANGE },  { EARLY_FADE, BLACK } };
 const Look EMBER                       = { FLAME, EMBER_COLORS, 80, FIXED_COLORS };
 
 // An icy flame that melts away to black, with a gentle cold shimmer
-const ColorStop FROST_COLORS[]         = { { SMOOTH_FADE, ICE_WHITE },   { SMOOTH_FADE, BLACK } };
+const ColorStop FROST_COLORS[]         = { { SMOOTH_FADE, ICE_WHITE },    { SMOOTH_FADE, BLACK } };
 const Look FROST                       = { FLAME, FROST_COLORS, 30, FIXED_COLORS };
 
 // A warm candle that leaves a faint glow behind it
-const ColorStop CANDLE_COLORS[]        = { { SMOOTH_FADE, AMBER },       { SMOOTH_FADE, CANDLE_GLOW } };
+const ColorStop CANDLE_COLORS[]        = { { SMOOTH_FADE, AMBER },        { SMOOTH_FADE, CANDLE_GLOW } };
 const Look CANDLE                      = { FLAME, CANDLE_COLORS, 50, FIXED_COLORS };
 
 // Pink neon that hardly flickers, holds its color, then turns into a dim teal trail
-const ColorStop NEON_COLORS[]          = { { STEADY_FADE, NEON_PINK },   { LATE_FADE, DIM_TEAL } };
+const ColorStop NEON_COLORS[]          = { { STEADY_FADE, NEON_PINK },    { LATE_FADE, DIM_TEAL } };
 const Look NEON                        = { FLAME, NEON_COLORS, 5, FIXED_COLORS };
 
 // A rainbow around the ring where each LED burns its own color down to black
-const ColorStop RAINBOW_EMBER_COLORS[] = { { SMOOTH_FADE, WHEEL_FULL },  { STEADY_FADE, BLACK } };
-const Look RAINBOW_EMBER               = { FLAME, RAINBOW_EMBER_COLORS, 60, WHEEL_COLORS };
+const ColorStop RAINBOW_EMBER_COLORS[] = { { SMOOTH_FADE, RAINBOW_FULL }, { STEADY_FADE, BLACK } };
+const Look RAINBOW_EMBER               = { FLAME, RAINBOW_EMBER_COLORS, 60, RAINBOW_COLORS };
 
 // =====================================================================
 //  2. FLAME_LIST: THE FLAMES THE BUTTON STEPS THROUGH
@@ -111,5 +111,5 @@ const Look RAINBOW_EMBER               = { FLAME, RAINBOW_EMBER_COLORS, 60, WHEE
 //  Up to 12 flames. Write each name with a & in front.
 // =====================================================================
 
-const Look *const FLAME_LIST[] = { &FIRE, &COOL, &SPARK, &SOLID, &HUE_WHEEL,
+const Look *const FLAME_LIST[] = { &FIRE, &COOL, &SPARK, &SOLID, &RAINBOW_GLOW,
                                    &EMBER, &FROST, &CANDLE, &NEON, &RAINBOW_EMBER };

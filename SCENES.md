@@ -72,7 +72,7 @@ These come in **TempleLooks.h**. Any flame from `Flames.h` works as a temple loo
 
 Temple looks are written the same way as flames: see [Making your own flame](README.md#️-making-your-own-flame) in the README.
 
-> 🌈 **Rainbow looks** (`WHEEL_COLORS`, like `HUE_WHEEL` and `RAINBOW_EMBER`) spread the rainbow across each temple's own LEDs, and every temple starts it over at red. A 1-LED temple is always red, and a 2-LED temple is red and aqua. The hues don't move over time.
+> 🌈 **Rainbow looks** (`RAINBOW_COLORS`, like `RAINBOW_GLOW` and `RAINBOW_EMBER`) spread the rainbow across each temple's own LEDs, and every temple starts it over at red. A 1-LED temple is always red, and a 2-LED temple is red and aqua. The hues don't move over time.
 
 ### 💓 Heartbeat looks
 

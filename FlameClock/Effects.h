@@ -40,8 +40,8 @@ inline CRGB fadeBetween(CRGB from, CRGB to, float level) {
   return out;
 }
 
-// A look's color on one LED of a group of 'ledCount' LEDs. A wheel color
-// holds its brightness in red and its paleness in green (see wheelColor),
+// A look's color on one LED of a group of 'ledCount' LEDs. A rainbow color
+// holds its brightness in red and its paleness in green (see rainbowColor),
 // and takes its hue from the LED's place in the group.
 inline CRGB paint(const Look &look, CRGB color, uint8_t led, uint8_t ledCount) {
   if (look.colors == FIXED_COLORS) return color;

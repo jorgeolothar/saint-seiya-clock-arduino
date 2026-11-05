@@ -104,9 +104,9 @@ In **PART 1** of `FlameClock.ino`, write one line for each LED ring (1 to 4 ring
 
 ```cpp
 const Clock CLOCKS[] = {
-  { SHOW_HOURS,   COOL,      EMBER,         1 },   // the Sanctuary Fire Clock
-  { SHOW_MINUTES, SPARK,     SPARK,         1 },   // a spark jumps every 5 minutes
-  { SHOW_SECONDS, HUE_WHEEL, RAINBOW_EMBER, 4 },   // a rainbow fills and burns out every 2 minutes
+  { SHOW_HOURS,   COOL,         EMBER,         1 },   // the Sanctuary Fire Clock
+  { SHOW_MINUTES, SPARK,        SPARK,         1 },   // a spark jumps every 5 minutes
+  { SHOW_SECONDS, RAINBOW_GLOW, RAINBOW_EMBER, 4 },   // a rainbow fills and burns out every 2 minutes
 };
 ```
 
@@ -128,7 +128,7 @@ These flames come built in. The number is what a ring shows when you pick it wit
 | 2 | 🧊 `COOL` | <small>🟦🟦</small>⬜ | Icy white flame, ice blue trail |
 | 3 | ⚡ `SPARK` | <small>⬛⬛</small>🟨 | A bright flash that dies out quickly, no trail |
 | 4 | 🟠 `SOLID` | <small>🟧🟧</small>🟧 | Steady amber, no fading, no flicker |
-| 5 | 🌈 `HUE_WHEEL` | <small>🟥🟨</small>🌈 | A rainbow around the ring: pale flame, deep colored trail |
+| 5 | 🌈 `RAINBOW_GLOW` | <small>🟥🟨</small>🌈 | A rainbow around the ring: pale flame, deep colored trail |
 | 6 | 🪵 `EMBER` | <small>⬛⬛</small>🟧 | Orange flame that burns out quickly to black. The countdown in the Sanctuary Fire Clock (see above) |
 | 7 | ❄️ `FROST` | <small>⬛⬛</small>⬜ | Icy flame that melts away to black |
 | 8 | 🕯️ `CANDLE` | <small>🟫🟫</small>🟧 | Warm flame that leaves a faint glow |
@@ -194,10 +194,10 @@ const CRGB ORANGE = CRGB(255, 110, 0);
 
 Change a color there, and every flame that uses it changes too. Search the web for "RGB color picker" to find the numbers you want.
 
-**Rainbow colors** for `WHEEL_COLORS` flames are written as `wheelColor(brightness %, paleness %)`. Each LED takes its hue from its place on the ring, so there's no hue to pick:
+**Rainbow colors** for `RAINBOW_COLORS` flames are written as `rainbowColor(brightness %, paleness %)`. Each LED takes its hue from its place on the ring, so there's no hue to pick:
 
 ```cpp
-const CRGB WHEEL_PALE = wheelColor(100, 40);   // full brightness, a bit pale
+const CRGB RAINBOW_PALE = rainbowColor(100, 40);   // full brightness, a bit pale
 ```
 
 To let the button pick your new flame, add its name to `FLAME_LIST` at the bottom of `Flames.h` (up to 12 flames).

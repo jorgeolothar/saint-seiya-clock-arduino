@@ -97,16 +97,16 @@ const Clock CLOCKS[] = {
   // lights the ring blue, one LED per hour. In the afternoon the blue
   // flames burn out, one per hour, like the countdown through the twelve
   // zodiac temples.
-  { SHOW_HOURS,   COOL,      EMBER,         1 },
+  { SHOW_HOURS,   COOL,         EMBER,         1 },
 
   // Ring 2, minutes: a bright spark jumps one LED every 5 minutes and
   // leaves no trail.
-  // { SHOW_MINUTES, SPARK,     SPARK,         1 },
+  // { SHOW_MINUTES, SPARK,        SPARK,         1 },
 
   // Ring 3, seconds: in even minutes a rainbow fills the ring, one LED
   // every 5 seconds. In odd minutes each color burns out to black. This
   // ring is mounted turned, so its top LED is 4.
-  // { SHOW_SECONDS, HUE_WHEEL, RAINBOW_EMBER, 4 },
+  // { SHOW_SECONDS, RAINBOW_GLOW, RAINBOW_EMBER, 4 },
 };
 
 // Turn on by itself when plugged in? true = yes, false = wait for the button

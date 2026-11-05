@@ -48,17 +48,17 @@ enum Effect : uint8_t {
 // ---- Where a look's colors come from ----
 enum ColorStyle : uint8_t {
   FIXED_COLORS,   // Exactly the colors you wrote
-  WHEEL_COLORS    // A rainbow across the LEDs: each LED takes its hue from its
-                  // place in the group. Use colors made with wheelColor().
+  RAINBOW_COLORS    // A rainbow across the LEDs: each LED takes its hue from its
+                  // place in the group. Use colors made with rainbowColor().
 };
 
-// ---- A color for WHEEL_COLORS looks ----
+// ---- A color for RAINBOW_COLORS looks ----
 // Brightness and paleness in % (paleness: 0 = full color, 100 = white).
 // The hue comes from the LED's place in the group. It is stored in an
-// ordinary CRGB (red = brightness, green = paleness) that only wheel
+// ordinary CRGB (red = brightness, green = paleness) that only rainbow
 // looks read this way, so it shows a meaningless color in a
 // FIXED_COLORS look.
-inline CRGB wheelColor(uint8_t brightness, uint8_t paleness) {
+inline CRGB rainbowColor(uint8_t brightness, uint8_t paleness) {
   if (brightness > 100) brightness = 100;
   if (paleness > 100) paleness = 100;
   return CRGB(brightness * 255 / 100, paleness * 255 / 100, 0);
