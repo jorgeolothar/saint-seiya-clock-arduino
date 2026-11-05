@@ -44,8 +44,8 @@ constexpr Temple TEST_TEMPLES[] = {
 };
 CRGB testLeds[ledsIn(TEST_TEMPLES)];
 const PowerLimit TEST_POWER = { 1000, 20 };
-const Scene spotlight(TEST_TEMPLES, testLeds, SPOTLIGHT, clockTime(1, 0, 0), TEST_POWER, 0);
-const Scene fill(TEST_TEMPLES, testLeds, FILL, clockTime(1, 0, 0), TEST_POWER, 0);
+const Scene spotlight(SCENE_TEMPLES(TEST_TEMPLES), testLeds, SPOTLIGHT, clockTime(1, 0, 0), TEST_POWER, 0);
+const Scene fill(SCENE_TEMPLES(TEST_TEMPLES), testLeds, FILL, clockTime(1, 0, 0), TEST_POWER, 0);
 
 constexpr Temple EIGHT_TEMPLES[] = {
   { 1, 1, ON_LOOK, OFF, 1000, REPEAT }, { 2, 1, ON_LOOK, OFF, 1000, REPEAT }, { 3, 1, ON_LOOK, OFF, 1000, REPEAT },
@@ -53,7 +53,7 @@ constexpr Temple EIGHT_TEMPLES[] = {
   { 7, 1, ON_LOOK, OFF, 1000, REPEAT }, { 8, 1, ON_LOOK, OFF, 1000, REPEAT },   // the throne
 };
 CRGB eightLeds[ledsIn(EIGHT_TEMPLES)];
-const Scene eight(EIGHT_TEMPLES, eightLeds, SPOTLIGHT, clockTime(0, 0, 0), TEST_POWER, 0);
+const Scene eight(SCENE_TEMPLES(EIGHT_TEMPLES), eightLeds, SPOTLIGHT, clockTime(0, 0, 0), TEST_POWER, 0);
 
 // Which temples of a scene are on at a time of day, as a string like "1....": 1 = on
 static const char *onAt(const Scene &scene, uint32_t ms, bool allOn = false) {
@@ -61,7 +61,7 @@ static const char *onAt(const Scene &scene, uint32_t ms, bool allOn = false) {
   uint8_t i = 0;
   for (; i < scene.templeCount; i++) {
     uint32_t onFor;
-    text[i] = templeOn(scene, scene.temples[i], ms, allOn, onFor) ? '1' : '.';
+    text[i] = templeOn(scene, scene.temples[i].get(), ms, allOn, onFor) ? '1' : '.';
   }
   text[i] = 0;
   return text;
@@ -135,6 +135,13 @@ static void checkScenes() {
 
   printf("The scenes in Scenes.h:\n");
   check(NUM_SCENES == 4, "all four scenes compile (run.sh switches them all on)");
+  const Scene &sanctuaryScene = *SCENES[0];
+  const Temple aries = sanctuaryScene.temples[0].get(), athena = sanctuaryScene.temples[12].get();
+  check(sanctuaryScene.templeCount == 13 && sanctuaryScene.ledCount == 26 && sanctuaryScene.hours == 12,
+        "the Sanctuary: 13 temples, 26 LEDs, 12 hours");
+  check(aries.hour == 1 && aries.ledCount == 2 && aries.on == SANCTUARY[0].on && aries.repeat == REPEAT,
+        "its temples read back out of program space as written");
+  check(athena.hour == ALWAYS && athena.cycleMs == 4000, "down to the last one, Athena's temple");
 }
 
 int main() {

@@ -105,15 +105,15 @@ const PowerLimit SANCTUARY_POWER = { 300, 20 };   // most milliamps, milliamps p
 
 ## 💾 Memory
 
-The Uno and Nano have 2 KB of memory. Each scene switched on takes some of it, for its LEDs and its list of temples:
+The Uno and Nano have 2 KB of memory. Each scene switched on takes some of it for its LEDs. Its list of temples is kept in program space, so that part costs no memory.
 
 | Switched on | Memory used |
 |---|---|
-| 1 ring, no scenes | 662 bytes (32%) |
-| 1 ring and the Sanctuary | 953 bytes (46%) |
-| 3 rings and all four scenes | 1,690 bytes (82%) |
+| 1 ring, no scenes | 487 bytes (23%) |
+| 1 ring and the Sanctuary | 660 bytes (32%) |
+| 3 rings and all four scenes | 1,181 bytes (57%) |
 
-With all four scenes on, the Arduino IDE warns that memory is low. The sketch has run fine like that, but adding more looks may push it too far. If the clock resets by itself or the LEDs show garbage, switch off a scene you don't need.
+If the clock resets by itself or the LEDs show garbage, memory may be running out: switch off a scene you don't need.
 
 ## 🩺 Troubleshooting
 

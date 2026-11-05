@@ -69,7 +69,7 @@ inline void drawScene(const Scene &scene, uint32_t ms, uint32_t speed,
                       bool steady, bool colorTest, bool allOn) {
   uint16_t first = 0;                    // The temple's first LED on the chain
   for (uint8_t i = 0; i < scene.templeCount; i++) {
-    const Temple &temple = scene.temples[i];
+    const Temple temple = scene.temples[i].get();   // Copied out of program space
     uint32_t onForMs;
     bool on = templeOn(scene, temple, ms, allOn, onForMs);
     onForMs /= (speed > 0 ? speed : 1);

@@ -161,9 +161,10 @@ const uint32_t FREEZE_TIME = clockTime(3, 32, 32.5);
 // Minutes and seconds rings are a blur when sped up a lot; try 10.
 const uint32_t ACCELERATED_SPEED = 60;
 
-// Show the time and colors on the computer? Set to true, upload, and open
-// Tools > Serial Monitor (set to 115200 baud). Handy when asking for help.
-const bool PRINT_TO_SERIAL = false;
+// Show the time and colors on the computer? Remove the two slashes,
+// upload, and open Tools > Serial Monitor (set to 115200 baud). Handy
+// when asking for help. Leave it off otherwise: it takes memory.
+// #define PRINT_TO_SERIAL
 
 // The temple scenes follow these modes too: MODE_ACCELERATED runs
 // through their hours faster (their looks keep their own speed),
@@ -276,19 +277,19 @@ CRGB leds[MAX_RINGS][LED_PER_RING];         // One row of LEDs per ring
 // one starts in the flicker pattern
 #ifdef USE_SANCTUARY
 CRGB sanctuaryLeds[ledsIn(SANCTUARY)];
-const Scene sanctuary(SANCTUARY, sanctuaryLeds, SANCTUARY_LIGHTING, SANCTUARY_START, SANCTUARY_POWER, 4000);
+const Scene sanctuary(SCENE_TEMPLES(SANCTUARY), sanctuaryLeds, SANCTUARY_LIGHTING, SANCTUARY_START, SANCTUARY_POWER, 4000);
 #endif
 #ifdef USE_ASGARD
 CRGB asgardLeds[ledsIn(ASGARD)];
-const Scene asgard(ASGARD, asgardLeds, ASGARD_LIGHTING, ASGARD_START, ASGARD_POWER, 12000);
+const Scene asgard(SCENE_TEMPLES(ASGARD), asgardLeds, ASGARD_LIGHTING, ASGARD_START, ASGARD_POWER, 12000);
 #endif
 #ifdef USE_POSEIDON
 CRGB poseidonLeds[ledsIn(POSEIDON)];
-const Scene poseidon(POSEIDON, poseidonLeds, POSEIDON_LIGHTING, POSEIDON_START, POSEIDON_POWER, 20000);
+const Scene poseidon(SCENE_TEMPLES(POSEIDON), poseidonLeds, POSEIDON_LIGHTING, POSEIDON_START, POSEIDON_POWER, 20000);
 #endif
 #ifdef USE_HADES
 CRGB hadesLeds[ledsIn(HADES)];
-const Scene hades(HADES, hadesLeds, HADES_LIGHTING, HADES_START, HADES_POWER, 28000);
+const Scene hades(SCENE_TEMPLES(HADES), hadesLeds, HADES_LIGHTING, HADES_START, HADES_POWER, 28000);
 #endif
 
 const Scene *const SCENES[] = {
@@ -398,6 +399,7 @@ void showLeds() {
 // ---------------------------------------------------------------------
 //  DRAWING ONE RING
 // ---------------------------------------------------------------------
+#ifdef PRINT_TO_SERIAL
 // Prints the time and ring 1's flame color (before flicker) about once per second
 void printFlame(uint32_t ms, int pass, int position, CRGB c) {
   static unsigned long lastPrint = 0;
@@ -421,6 +423,7 @@ void printFlame(uint32_t ms, int pass, int position, CRGB c) {
   Serial.print(F(", "));
   Serial.println(c.b);
 }
+#endif
 
 // One flame moves around the ring:
 //   Behind the flame: its own trail (the last color of its list).
@@ -444,9 +447,11 @@ void drawClock(int ring, uint32_t ms, bool steady) {
       color = drawLook(before, before, 1.0f, position, LED_PER_RING, spot, steady);
     } else {                                            // The flame, taking over from the old trail
       color = drawLook(now, before, progress, position, LED_PER_RING, spot, steady);
-      if (PRINT_TO_SERIAL && ring == 0) {
+#ifdef PRINT_TO_SERIAL
+      if (ring == 0) {
         printFlame(ms, pass, position, drawLook(now, before, progress, position, LED_PER_RING, spot, true));
       }
+#endif
     }
     leds[ring][ringLed(ring, position)] = color;
   }
@@ -620,7 +625,9 @@ void handleButton() {
 //  ARDUINO SETUP AND LOOP
 // ---------------------------------------------------------------------
 void setup() {
-  if (PRINT_TO_SERIAL) Serial.begin(115200);
+#ifdef PRINT_TO_SERIAL
+  Serial.begin(115200);
+#endif
 
   // One data pin per ring
   FastLED.addLeds<WS2812B, RING1_PIN, COLOR_ORDER>(leds[0], LED_PER_RING);

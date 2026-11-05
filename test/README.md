@@ -30,6 +30,7 @@ test/run.sh main~2     # compare with another commit, branch or tag
 - **The real Arduino.** They don't compile for the Uno or Nano, so still click Verify in the Arduino IDE to see that it fits, and look at the real LEDs.
 - **FastLED's own math.** The `stub/` folder holds a small stand-in for FastLED, the Arduino and the EEPROM. Its rainbow colors and flicker pattern are not FastLED's, so the printed colors of `WHEEL_COLORS` flames and the flicker are not what the LEDs show. That's fine for comparing two versions, which both use the same stand-in.
 - **All of FastLED's names.** The real FastLED defines macros, and a sketch name that matches one breaks only in the Arduino IDE. The stand-in defines the ones known to clash (`LOOP`, `LEDS`, at the end of `stub/FastLED.h`). If the IDE shows an error the tests didn't, add the name there.
+- **Program space.** On the Arduino, the temple lists are kept in program space and copied out with `memcpy_P`. A computer has only one kind of memory, so there it's a plain copy, and the tests can't tell a wrong read from a right one. `InFlash` makes a read without `get()` a compile error, but only the real LEDs prove it works.
 - **Timing.** Time is set by the test, not counted, so it says nothing about speed or smoothness.
 
 ## Files
