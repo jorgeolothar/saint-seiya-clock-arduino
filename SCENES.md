@@ -60,6 +60,8 @@ The cycle should fit a day evenly (8 or 12 hours, for example). If it doesn't, i
 
 These come in **TempleLooks.h**. Any flame from `Flames.h` works as a temple look too.
 
+> 🌈 **Rainbow looks** (`WHEEL_COLORS`, like `HUE_WHEEL` and `RAINBOW_EMBER`) spread the rainbow across each temple's own LEDs, and every temple starts it over at red. A 1-LED temple is always red, and a 2-LED temple is red and aqua. The hues don't move over time.
+
 | Look | What it is |
 |---|---|
 | `OFF` | Dark. The usual off look |
