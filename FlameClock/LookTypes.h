@@ -39,16 +39,20 @@ enum Effect : uint8_t {
   HEARTBEAT,      // Beats twice, like a heart (lub, dub), then rests on the last
                   // color until the cycle ends. Each beat plays the color list
                   // quickly. Amount = how strong the 2nd beat is, in %.
-  PULSES          // A quick burst of short pulses at the start of the cycle,
+  PULSES,         // A quick burst of short pulses at the start of the cycle,
                   // then rests on the last color until the cycle ends. Each
                   // pulse plays the color list quickly. Amount = how many
                   // pulses, 1 to 8.
+  FAILING         // Fades through the colors, steady, like GRADIENT, but goes
+                  // out for a moment or stutters at random times, like a bad
+                  // wire. A temple's LEDs fail together. Amount = how often
+                  // it fails, in %.
 };
 
 // ---- Where a look's colors come from ----
 enum ColorStyle : uint8_t {
   FIXED_COLORS,   // Exactly the colors you wrote
-  RAINBOW_COLORS    // A rainbow across the LEDs: each LED takes its hue from its
+  RAINBOW_COLORS  // A rainbow across the LEDs: each LED takes its hue from its
                   // place in the group. Use colors made with rainbowColor().
 };
 
@@ -73,11 +77,12 @@ inline CRGB rainbowColor(uint8_t brightness, uint8_t paleness) {
 // The color list can be any length. Its colors share the cycle equally,
 // and the last one is where the look ends.
 struct Look {
-  Effect effect;              // GRADIENT, FLAME, HEARTBEAT or PULSES
+  Effect effect;              // GRADIENT, FLAME, HEARTBEAT, PULSES or FAILING
   const ColorStop *stops;     // The color list
   uint8_t stopCount;          // How many colors are in the list (counted for you)
   uint8_t amount;             // What it means depends on the effect (FLAME: flicker %,
-                              // HEARTBEAT: strength of the 2nd beat %, PULSES: how many)
+                              // HEARTBEAT: strength of the 2nd beat %, PULSES: how many,
+                              // FAILING: how often it fails %)
   ColorStyle colors;          // FIXED_COLORS or RAINBOW_COLORS
 
   template <size_t N>

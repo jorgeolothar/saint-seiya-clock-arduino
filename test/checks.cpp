@@ -55,6 +55,16 @@ constexpr Temple EIGHT_TEMPLES[] = {
 CRGB eightLeds[ledsIn(EIGHT_TEMPLES)];
 const Scene eight(SCENE_TEMPLES(EIGHT_TEMPLES), eightLeds, SPOTLIGHT, clockTime(0, 0, 0), TEST_POWER, 0);
 
+// Two lamps that fail as often as they can: 3 LEDs, then 2
+const ColorStop RED_LAMP[] = { { SNAP, R } };
+const Look FAILING_LAMP = { FAILING, RED_LAMP, 100, FIXED_COLORS };
+constexpr Temple LAMPS[] = {
+  { ALWAYS, 3, FAILING_LAMP, OFF, 0, REPEAT },
+  { ALWAYS, 2, FAILING_LAMP, OFF, 0, REPEAT },
+};
+CRGB lampLeds[ledsIn(LAMPS)];
+const Scene lamps(SCENE_TEMPLES(LAMPS), lampLeds, SPOTLIGHT, clockTime(0, 0, 0), TEST_POWER, 0);
+
 // Which temples of a scene are on at a time of day, as a string like "1....": 1 = on
 static const char *onAt(const Scene &scene, uint32_t ms, bool allOn = false) {
   static char text[32];
@@ -122,11 +132,11 @@ static void checkScenes() {
   const CRGB second[9] = { K, K, R, K, K, K, K, B, B };
   check(ledsAre(spotlight, second), "02:00:00.5: only the LED of hour 2 changes");
 
-  check(drawTemple(TEST_TEMPLES[1], true, 0, 0, 0, true) == G, "turning on fades in from the off look");
-  check(drawTemple(TEST_TEMPLES[0], true, 1000, 0, 0, true) == B, "REPEAT: the 2nd cycle starts where the 1st ended");
-  check(drawTemple(TEST_TEMPLES[0], true, 1500, 0, 0, true) == R, "REPEAT: and plays again");
-  check(drawTemple(TEST_TEMPLES[1], true, 5000, 0, 0, true) == B, "ONCE_HOLD: stays on the last color");
-  check(drawTemple(TEST_TEMPLES[2], true, 5000, 0, 0, true) == K, "ONCE_OFF: turns to the off look");
+  check(drawTemple(TEST_TEMPLES[1], true, 0, 0, 0, 0, true) == G, "turning on fades in from the off look");
+  check(drawTemple(TEST_TEMPLES[0], true, 1000, 0, 0, 0, true) == B, "REPEAT: the 2nd cycle starts where the 1st ended");
+  check(drawTemple(TEST_TEMPLES[0], true, 1500, 0, 0, 0, true) == R, "REPEAT: and plays again");
+  check(drawTemple(TEST_TEMPLES[1], true, 5000, 0, 0, 0, true) == B, "ONCE_HOLD: stays on the last color");
+  check(drawTemple(TEST_TEMPLES[2], true, 5000, 0, 0, 0, true) == K, "ONCE_OFF: turns to the off look");
 
   drawScene(spotlight, clockTime(1, 0, 30), 60, true, false, false);
   check(spotlight.leds[0] == R, "sped up 60 times: 30 clock seconds play as half a real second");
@@ -154,13 +164,13 @@ static void checkHeartbeat() {
   check(near(lookColor(beat, G, mid2, 0, 1), CRGB(127, 0, 128), 2), "2nd beat: half as strong, halfway between blue and red");
   check(lookColor(beat, G, 0.6f, 0, 1) == B && lookColor(beat, G, 1.0f, 0, 1) == B, "rests on the last color to the end");
   check(arrival(beat, 0.0f) == 0.0f && arrival(beat, BEAT_LENGTH) == 1.0f, "it has taken over by the end of the 1st beat");
-  check(drawLook(beat, beat, 0.6f, 0, 1, 0, false) == B, "it doesn't flicker");
+  check(drawLook(beat, beat, 0.6f, 0, 1, 0, 0, false) == B, "it doesn't flicker");
   const Look quiet = { HEARTBEAT, RED_BLUE, 0, FIXED_COLORS };
   check(lookColor(quiet, G, mid2, 0, 1) == B, "amount 0: no 2nd beat");
 
   const Temple heart(1, 1, beat, OFF, 1000, REPEAT);
-  check(drawTemple(heart, true, 1000, 0, 0, true) == B, "in a temple, each heartbeat starts from the resting color");
-  check(near(drawTemple(heart, true, 1000 + 1000 * mid1, 0, 0, true), R, 2), "and beats again");
+  check(drawTemple(heart, true, 1000, 0, 0, 0, true) == B, "in a temple, each heartbeat starts from the resting color");
+  check(near(drawTemple(heart, true, 1000 + 1000 * mid1, 0, 0, 0, true), R, 2), "and beats again");
 }
 
 static void checkPulses() {
@@ -176,11 +186,101 @@ static void checkPulses() {
   check(lookColor(burst, G, 3 * slot + mid, 0, 1) == B, "no 4th pulse");
   check(lookColor(burst, G, 0.7f, 0, 1) == B && lookColor(burst, G, 1.0f, 0, 1) == B, "rests on the last color to the end");
   check(arrival(burst, 0.0f) == 0.0f && arrival(burst, PULSE_LENGTH) == 1.0f, "it has taken over by the end of the 1st pulse");
-  check(drawLook(burst, burst, mid, 0, 1, 0, false) == lookColor(burst, B, mid, 0, 1), "it doesn't flicker");
+  check(drawLook(burst, burst, mid, 0, 1, 0, 0, false) == lookColor(burst, B, mid, 0, 1), "it doesn't flicker");
   const Look none = { PULSES, RED_BLUE, 0, FIXED_COLORS }, many = { PULSES, RED_BLUE, 200, FIXED_COLORS };
   check(lookColor(none, G, slot + mid, 0, 1) == B, "amount 0 counts as 1 pulse");
   check(near(lookColor(many, G, 7 * slot + mid, 0, 1), R, 2) && lookColor(many, G, 8 * slot + mid, 0, 1) == B,
         "amount over 8 counts as 8 pulses");
+}
+
+// How many steps an LED is out in one window, and whether they all fall
+// between the first and last step of one stutter
+static int stutterLength = 0;   // From the first step out to the last, in the last window looked at
+
+static uint8_t stepsOut(uint32_t window, uint16_t spot, uint8_t amount, bool &oneStutter) {
+  int first = -1, last = -1, count = 0;
+  for (uint8_t s = 0; s < FAIL_WINDOW_STEPS; s++) {
+    fakeMillis = (window * FAIL_WINDOW_STEPS + s) * FAIL_STEP_MS;
+    if (failedNow(spot, amount)) { count++; if (first < 0) first = s; last = s; }
+  }
+  oneStutter = (count == 0) || (last - first < FAIL_LONGEST_STEPS);
+  stutterLength = (count == 0) ? 0 : last - first + 1;
+  return count;
+}
+
+static void checkFailing() {
+  printf("FAILING (red, steady, with dropouts):\n");
+  const ColorStop RED_ONLY[] = { { SNAP, R } };
+  const Look failing = { FAILING, RED_ONLY, 30, FIXED_COLORS };
+  const Look never = { FAILING, RED_ONLY, 0, FIXED_COLORS }, always = { FAILING, RED_ONLY, 100, FIXED_COLORS };
+  const int windows = 20000;
+
+  bool none = true, eachShort = true, allFault = true, stepsAlike = true;
+  int faults = 0, rare = 0, stutters = 0, out = 0, steps = 0, apart = 0, longest = 0, shortest = 99;
+  for (uint32_t w = 0; w < windows; w++) {
+    bool one;
+    none = none && stepsOut(w, 7, 0, one) == 0;
+    uint8_t n = stepsOut(w, 7, 100, one);
+    allFault = allFault && n > 0;
+    eachShort = eachShort && one;
+    stutters += n < stutterLength;                      // Back on for a step, then out again
+    rare += stepsOut(w, 7, 1, one) > 0;
+    if (n > longest) longest = n;
+    if (n < shortest) shortest = n;
+    faults += stepsOut(w, 7, 30, one) > 0;
+    if ((stepsOut(w, 7, 30, one) > 0) != (stepsOut(w, 7 + 97, 30, one) > 0)) apart++;
+    for (uint8_t s = 0; s < FAIL_WINDOW_STEPS; s++) {    // Steady within a step
+      fakeMillis = (w * FAIL_WINDOW_STEPS + s) * FAIL_STEP_MS;
+      bool a = failedNow(7, 100);
+      fakeMillis += FAIL_STEP_MS - 1;
+      stepsAlike = stepsAlike && failedNow(7, 100) == a;
+      out += a;
+      steps++;
+    }
+  }
+  check(none, "amount 0: never fails");
+  check(allFault && shortest == 1 && longest == FAIL_LONGEST_STEPS, "amount 100: a fault every window, 1 to 8 steps out");
+  check(eachShort, "each fault is one short stutter, inside its window");
+  check(stutters * 100 / windows >= 20, "faults often stutter: out, on, out again");
+  check(rare >= windows / 200 && rare <= windows * 3 / 200, "amount 1: a fault in about 1% of windows");
+  check(stepsAlike, "an LED stays out or on for a whole step");
+  check(out * 100 / steps < 15, "amount 100: still on most of the time (under 15% out)");
+  printf("        amount 30: a fault in %d.%d%% of windows; groups 97 apart differ in %d.%d%%\n",
+         faults * 100 / windows, faults * 1000 / windows % 10, apart * 100 / windows, apart * 1000 / windows % 10);
+  check(faults * 100 / windows >= 28 && faults * 100 / windows <= 32, "amount 30: a fault in about 30% of windows");
+  check(apart * 100 / windows >= 35, "different groups fail at different times");
+
+  bool lit = true, dark = true, steadyLit = true, rarelyOut = true;
+  for (uint32_t ms = 0; ms < 200000; ms += 5) {
+    fakeMillis = ms;
+    CRGB c = drawLook(failing, failing, 0.5f, 0, 1, 7, 7, false);
+    if (failedNow(7, 30)) dark = dark && c == K; else lit = lit && c == R;
+    steadyLit = steadyLit && drawLook(failing, failing, 0.5f, 0, 1, 7, 7, true) == R;
+    rarelyOut = rarelyOut && drawLook(never, never, 0.5f, 0, 1, 7, 7, false) == R;
+  }
+  check(lit, "on: its own color, with no flicker");
+  check(dark, "out: dark");
+  check(steadyLit, "steady (MODE_FREEZE): never out");
+  check(rarelyOut, "amount 0: always on");
+  fakeMillis = 0;
+  for (uint32_t s = 0; s < 2000 && !failedNow(7, 100); s++) fakeMillis += FAIL_STEP_MS;
+  check(drawLook(always, OFF, 0.0f, 0, 1, 7, 7, false) == K, "a fault shows from the start when it SNAPs in");
+  check(drawLook(ON_LOOK, always, 0.0f, 0, 1, 7, 7, false) == K && drawLook(ON_LOOK, always, 1.0f, 0, 1, 7, 7, false) == B,
+        "taking over from a failing look: its faults fade out as the new look fades in");
+  check(lookFlicker(failing) == 0, "it doesn't flicker");
+
+  bool together = true, wentOut = false;
+  int lampsApart = 0;
+  for (uint32_t ms = 0; ms < 200000; ms += 5) {
+    fakeMillis = ms;
+    drawScene(lamps, 0, 1, false, false, false);
+    together = together && lampLeds[0] == lampLeds[1] && lampLeds[1] == lampLeds[2] && lampLeds[3] == lampLeds[4];
+    wentOut = wentOut || lampLeds[0] == K;
+    lampsApart += !(lampLeds[0] == lampLeds[3]);
+  }
+  check(wentOut && together, "in a temple, all its LEDs go out together");
+  check(lampsApart > 1000, "two temples fail at different times");
+  fakeMillis = 0;
 }
 
 int main() {
@@ -231,6 +331,7 @@ int main() {
 
   checkHeartbeat();
   checkPulses();
+  checkFailing();
   checkScenes();
 
   printf(failures ? "%d check(s) FAILED\n" : "All checks passed\n", failures);

@@ -36,9 +36,10 @@ inline bool templeOn(const Scene &scene, const Temple &temple, uint32_t ms, bool
 }
 
 // Draws one LED of a temple. 'onForMs' is how long the temple has been
-// on, in real time.
+// on, in real time. 'spot' is the LED's place in the flicker pattern, and
+// 'templeSpot' the temple's: a failing look fails the whole temple at once.
 inline CRGB drawTemple(const Temple &temple, bool on, uint32_t onForMs,
-                       uint8_t led, uint16_t spot, bool steady) {
+                       uint8_t led, uint16_t spot, uint16_t templeSpot, bool steady) {
   const Look *look = temple.on;
   const Look *before = temple.off;       // The first cycle fades in from the off look
   float phase = 1.0f;                    // 1.0 = the look's last color
@@ -56,13 +57,13 @@ inline CRGB drawTemple(const Temple &temple, bool on, uint32_t onForMs,
       look = temple.off;
     }                                    // ONCE_HOLD: stays on the last color
   }
-  return drawLook(*look, *before, phase, led, temple.ledCount, spot, steady);
+  return drawLook(*look, *before, phase, led, temple.ledCount, spot, templeSpot, steady);
 }
 
 // Draws every temple of a scene at time of day 'ms'.
 //   speed ...... how much faster than real time the clock runs (1 = real
 //                time), so looks keep their own speed in a sped-up day
-//   steady ..... true turns the flicker off
+//   steady ..... true turns the flicker and the dropouts off
 //   colorTest .. true shows every temple's on look, first color, steady
 //   allOn ...... true turns every temple on
 inline void drawScene(const Scene &scene, uint32_t ms, uint32_t speed,
@@ -73,10 +74,11 @@ inline void drawScene(const Scene &scene, uint32_t ms, uint32_t speed,
     uint32_t onForMs;
     bool on = templeOn(scene, temple, ms, allOn, onForMs);
     onForMs /= (speed > 0 ? speed : 1);
+    uint16_t templeSpot = scene.flickerSpot + first * 97;
     for (uint8_t led = 0; led < temple.ledCount; led++) {
-      uint16_t spot = scene.flickerSpot + (first + led) * 97;
+      uint16_t spot = templeSpot + led * 97;
       scene.leds[first + led] = colorTest ? firstColor(*temple.on, led, temple.ledCount)
-                                          : drawTemple(temple, on, onForMs, led, spot, steady);
+                                          : drawTemple(temple, on, onForMs, led, spot, templeSpot, steady);
     }
     first += temple.ledCount;
   }

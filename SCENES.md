@@ -69,6 +69,7 @@ These come in **TempleLooks.h**. Any flame from `Flames.h` works as a temple loo
 | `SEA` | Deep sea blue that drifts into teal and back. For Poseidon's temples |
 | `HEART` | A heartbeat: two quick red beats, resting on a dark red glow. A cycle ms of `1000` = 60 beats a minute |
 | `BEACON` | A burst of 3 short white flashes, then dark. The cycle ms is how often the burst comes |
+| `FAULTY_LIGHT` | A cold white light that goes out for a moment or stutters now and then, like a bad wire |
 
 Temple looks are written the same way as flames: see [Making your own flame](README.md#️-making-your-own-flame) in the README.
 
@@ -115,6 +116,25 @@ Each pulse takes 8% of the cycle, with 4% between pulses. With a cycle ms of `20
 | 640 – 2000 ms | Rests until the next burst |
 
 So a longer cycle ms makes each pulse longer too. Use `REPEAT`, so the bursts keep coming. Pulses don't flicker.
+
+### 💡 Failing lights
+
+A look with the `FAILING` effect plays its color list like `GRADIENT`, so with one color it's a steady light. Now and then it goes out for a moment, or stutters: out, on, out again, all within a fifth of a second. The amount is how often it fails, in %:
+
+```cpp
+const ColorStop FAULTY_LIGHT_COLORS[] = { { SNAP, ICE_WHITE } };
+const Look FAULTY_LIGHT               = { FAILING, FAULTY_LIGHT_COLORS, 30, FIXED_COLORS };
+```
+
+| Amount | How often each LED fails |
+|---|---|
+| `100` | Every 0.8 seconds. It's still on most of the time |
+| `30` | About every 2.7 seconds, at random |
+| `10` | About every 8 seconds, at random |
+
+**A temple's LEDs fail together,** like one light: the whole room goes dark at once. For lights that fail on their own, like two street lamps, make each light its own temple with the same hour. Different temples fail at different moments, and looks with different amounts fail at different rates.
+
+The failures follow real time, not the temple's cycle, so they're the same whatever the cycle ms. With one color, the cycle ms doesn't matter: use `0`. A failing light doesn't flicker. `MODE_FREEZE` and `MODE_COLOR_TEST` show it steady.
 
 ## 🧪 Test modes
 

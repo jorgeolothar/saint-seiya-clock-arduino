@@ -435,7 +435,7 @@ void printFlame(uint32_t ms, int pass, int position, CRGB c) {
 //   Ahead of the flame: the trail the other flame left on its lap.
 //   The flame itself fades in from that old trail through its color
 //   list, and ends on its own trail.
-// steady = true turns the flicker off.
+// steady = true turns the flicker (and a failing look's dropouts) off.
 void drawClock(int ring, uint32_t ms, bool steady) {
   int pass, flamePosition;
   float progress;
@@ -443,18 +443,19 @@ void drawClock(int ring, uint32_t ms, bool steady) {
   const Look &now = *currentFlame[ring][pass];          // The flame moving now
   const Look &before = *currentFlame[ring][1 - pass];   // The flame of the last lap
 
+  uint16_t ringSpot = ring * 523;                       // A failing flame fails the whole ring at once
   for (int position = 0; position < LED_PER_RING; position++) {
-    uint16_t spot = position * 97 + ring * 523;         // The LED's place in the flicker pattern
+    uint16_t spot = position * 97 + ringSpot;           // The LED's place in the flicker pattern
     CRGB color;
     if (position < flamePosition) {                     // Behind: this flame's trail
-      color = drawLook(now, now, 1.0f, position, LED_PER_RING, spot, steady);
+      color = drawLook(now, now, 1.0f, position, LED_PER_RING, spot, ringSpot, steady);
     } else if (position > flamePosition) {              // Ahead: the last lap's trail
-      color = drawLook(before, before, 1.0f, position, LED_PER_RING, spot, steady);
+      color = drawLook(before, before, 1.0f, position, LED_PER_RING, spot, ringSpot, steady);
     } else {                                            // The flame, taking over from the old trail
-      color = drawLook(now, before, progress, position, LED_PER_RING, spot, steady);
+      color = drawLook(now, before, progress, position, LED_PER_RING, spot, ringSpot, steady);
 #ifdef PRINT_TO_SERIAL
       if (ring == 0) {
-        printFlame(ms, pass, position, drawLook(now, before, progress, position, LED_PER_RING, spot, true));
+        printFlame(ms, pass, position, drawLook(now, before, progress, position, LED_PER_RING, spot, ringSpot, true));
       }
 #endif
     }

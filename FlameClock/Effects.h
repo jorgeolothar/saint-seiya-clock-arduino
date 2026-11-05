@@ -169,6 +169,50 @@ inline uint16_t flickerTime() {
   return (ms / 300) * FLICKER_SPEED_PERCENT + (ms % 300) * FLICKER_SPEED_PERCENT / 300;
 }
 
+// ---- FAILING timing, in real time ----
+// Time is cut into windows of FAIL_WINDOW_STEPS steps. Each window, each
+// group of LEDs (a temple, or a ring) has a chance (the look's amount, in %) of one fault: a stutter of
+// 1 to FAIL_LONGEST_STEPS steps, out on the first step and on about half
+// of the rest.
+const uint8_t FAIL_STEP_MS = 25;          // The shortest dropout
+const uint8_t FAIL_WINDOW_STEPS = 32;     // 32 steps = 0.8 s: at 100%, a fault every 0.8 s
+const uint8_t FAIL_LONGEST_STEPS = 8;     // 8 steps = 0.2 s: the longest stutter
+static_assert(FAIL_LONGEST_STEPS >= 1 && FAIL_LONGEST_STEPS <= 8 && FAIL_LONGEST_STEPS < FAIL_WINDOW_STEPS,
+              "FAILING: a stutter is 1 to 8 steps and must fit in its window");
+
+// Mixes the bits of a number, to make the same "random" number from the
+// same input every time
+inline uint32_t mixBits(uint32_t x) {
+  x ^= x >> 16;
+  x *= 0x45D9F3BUL;
+  x ^= x >> 16;
+  x *= 0x45D9F3BUL;
+  x ^= x >> 16;
+  return x;
+}
+
+// Is a failing look out right now? 'spot' picks the group of LEDs that
+// fail together, and 'amount' is how often it fails, in %.
+inline bool failedNow(uint16_t spot, uint8_t amount) {
+  if (amount == 0) return false;
+  uint32_t step = millis() / FAIL_STEP_MS;
+  uint32_t window = step / FAIL_WINDOW_STEPS;
+  uint32_t dice = mixBits(window * 2654435761UL + spot * 40503UL);
+
+  if ((dice & 0xFF) * 100 / 256 >= amount) return false;                   // No fault this window
+  uint8_t start = (dice >> 8) % (FAIL_WINDOW_STEPS - FAIL_LONGEST_STEPS + 1);
+  uint8_t length = 1 + (dice >> 16) % FAIL_LONGEST_STEPS;
+  uint8_t into = step % FAIL_WINDOW_STEPS;
+  if (into < start || into >= start + length) return false;                // Before or after the fault
+  return into == start || ((dice >> 24) >> (into - start)) & 1;            // Out, or a stutter
+}
+
+// How dark a look's dropouts make the LED right now, in %. Only failing
+// looks have them.
+inline uint8_t lookDropout(const Look &look, uint16_t spot) {
+  return (look.effect == FAILING && failedNow(spot, look.amount)) ? 100 : 0;
+}
+
 // Brightness factor (255 = full) for one LED. Each LED reads its own
 // 'spot' in a smooth noise pattern, so LEDs flicker independently.
 // flicker: in %, 0 = steady, 100 = deepest dips.
@@ -184,17 +228,22 @@ inline uint8_t flickerScale(uint16_t spot, uint8_t flicker) {
 
 // Draws one LED: 'look' at 'phase', taking over from 'before'. The LED
 // fades from the last color of 'before' into the look's colors, and the
-// flicker changes over from one look's to the other's as it does.
-// To show a look on its own, give it as 'before' too.
+// flicker and the dropouts change over from one look's to the other's as
+// it does. To show a look on its own, give it as 'before' too.
 // 'spot' picks the LED's place in the flicker pattern: give each LED a
-// different one. steady = true turns the flicker off.
-inline CRGB drawLook(const Look &look, const Look &before, float phase,
-                     uint8_t led, uint8_t ledCount, uint16_t spot, bool steady) {
+// different one. 'groupSpot' picks when a failing look goes out: LEDs
+// with the same one (a temple's, or a ring's) fail together.
+// steady = true turns the flicker and the dropouts off.
+inline CRGB drawLook(const Look &look, const Look &before, float phase, uint8_t led,
+                     uint8_t ledCount, uint16_t spot, uint16_t groupSpot, bool steady) {
   CRGB color = lookColor(look, endColor(before, led, ledCount), phase, led, ledCount);
   if (!steady) {
     float arrived = arrival(look, phase);
     uint8_t flicker = (uint8_t)(lookFlicker(before) + (lookFlicker(look) - lookFlicker(before)) * arrived);
     color.nscale8(flickerScale(spot, flicker));
+    uint8_t darkBefore = lookDropout(before, groupSpot);
+    uint8_t dark = (uint8_t)(darkBefore + (lookDropout(look, groupSpot) - darkBefore) * arrived);
+    if (dark > 0) color.nscale8(255 - (uint16_t)dark * 255 / 100);
   }
   return color;
 }

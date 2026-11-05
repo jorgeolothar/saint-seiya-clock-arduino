@@ -46,6 +46,11 @@ const Look HEART                  = { HEARTBEAT, HEART_COLORS, 60, FIXED_COLORS 
 const ColorStop BEACON_COLORS[]   = { { SNAP, SPARK_WHITE }, { EARLY_FADE, BLACK } };
 const Look BEACON                 = { PULSES, BEACON_COLORS, 3, FIXED_COLORS };
 
+// A faulty light: a cold white that goes out for a moment or stutters
+// now and then, like a bad wire. Its cycle ms doesn't matter: use 0.
+const ColorStop FAULTY_LIGHT_COLORS[] = { { SNAP, ICE_WHITE } };
+const Look FAULTY_LIGHT           = { FAILING, FAULTY_LIGHT_COLORS, 30, FIXED_COLORS };
+
 // Deep sea blue that drifts into teal and back. For Poseidon's temples.
 const ColorStop SEA_COLORS[]      = { { SMOOTH_FADE, DIM_TEAL }, { SMOOTH_FADE, SEA_BLUE } };
 const Look SEA                    = { GRADIENT, SEA_COLORS, 0, FIXED_COLORS };
