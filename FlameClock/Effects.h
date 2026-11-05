@@ -99,6 +99,7 @@ inline uint8_t pulseCount(const Look &look) {
 // How far a look has taken over from the LED's old color at 'phase':
 // 0.0 = still the old color, 1.0 = past its first color
 inline float arrival(const Look &look, float phase) {
+  if (look.effect == LIGHTNING) return 1.0f;                  // It takes over at once
   float first = (look.effect == HEARTBEAT) ? BEAT_LENGTH     // It takes over during
               : (look.effect == PULSES)    ? PULSE_LENGTH    // its 1st beat or pulse
               : 1.0f;
@@ -149,7 +150,10 @@ inline CRGB pulsesColor(const Look &look, CRGB from, float phase, uint8_t led, u
 
 // A look's color at 'phase', before flicker. 'from' is the LED's color
 // before the look started: the look fades from it into its first color.
+// Lightning rests on its last color here: its strikes are drawn by
+// drawLook, as they follow real time.
 inline CRGB lookColor(const Look &look, CRGB from, float phase, uint8_t led, uint8_t ledCount) {
+  if (look.effect == LIGHTNING) return endColor(look, led, ledCount);
   if (look.effect == HEARTBEAT) return heartbeatColor(look, from, phase, led, ledCount);
   if (look.effect == PULSES) return pulsesColor(look, from, phase, led, ledCount);
   return listColor(look, from, phase, led, ledCount);
@@ -212,6 +216,56 @@ inline uint8_t lookDropout(const Look &look, uint16_t spot) {
   return (look.effect == FAILING && failedNow(spot, look.amount)) ? 100 : 0;
 }
 
+// ---- LIGHTNING timing, in real time ----
+// Time is cut into windows of STRIKE_WINDOW_MS. Each window, each group
+// of LEDs has a chance (the look's amount, in %) of one strike: 1 to
+// MOST_FLASHES flashes, each FLASH_GAP_MS plus up to FLASH_GAP_EXTRA_MS
+// after the one before. The 1st flash is at full strength, the others
+// at FLASH_WEAKEST_PERCENT to 100%.
+const uint16_t STRIKE_WINDOW_MS = 2000;     // At 100%, a strike every 2 s
+const uint8_t FLASH_MS = 150;               // One flash plays the color list in this time
+const uint8_t MOST_FLASHES = 4;
+const uint8_t FLASH_GAP_MS = 60;
+const uint8_t FLASH_GAP_EXTRA_MS = 120;
+const uint8_t FLASH_WEAKEST_PERCENT = 40;
+const uint16_t LONGEST_STRIKE_MS = (MOST_FLASHES - 1) * (FLASH_GAP_MS + FLASH_GAP_EXTRA_MS) + FLASH_MS;
+static_assert(MOST_FLASHES >= 1 && MOST_FLASHES <= 4, "LIGHTNING: a strike has 1 to 4 flashes");
+static_assert(LONGEST_STRIKE_MS < STRIKE_WINDOW_MS, "LIGHTNING: a strike must fit in its window");
+static_assert(FLASH_WEAKEST_PERCENT <= 100, "LIGHTNING: FLASH_WEAKEST_PERCENT goes up to 100");
+
+// A lightning look's color right now. 'spot' picks the group of LEDs that
+// strike together.
+inline CRGB lightningColor(const Look &look, uint16_t spot, uint8_t led, uint8_t ledCount) {
+  CRGB rest = endColor(look, led, ledCount);
+  if (look.amount == 0) return rest;
+  uint32_t ms = millis();
+  uint32_t window = ms / STRIKE_WINDOW_MS;
+  uint16_t into = ms % STRIKE_WINDOW_MS;
+  uint32_t dice = mixBits(window * 2654435761UL + spot * 40503UL + 1);
+
+  if ((dice & 0xFF) * 100 / 256 >= look.amount) return rest;               // No strike this window
+  uint8_t flashes = 1 + ((dice >> 8) & 3) % MOST_FLASHES;
+  uint16_t start = (dice >> 16) % (STRIKE_WINDOW_MS - LONGEST_STRIKE_MS);   // Ends inside the window
+  if (into < start) return rest;                                           // Before the strike
+
+  uint32_t more = mixBits(dice);                                           // The gaps and strengths
+  uint16_t flashStart = start;
+  uint8_t flash = 0;                                                       // The flash showing now
+  for (uint8_t i = 1; i < flashes; i++) {
+    uint16_t next = flashStart + FLASH_GAP_MS + ((more >> (8 * i)) & 0xF) * FLASH_GAP_EXTRA_MS / 15;
+    if (into < next) break;
+    flashStart = next;
+    flash = i;
+  }
+  uint16_t inFlash = into - flashStart;
+  if (inFlash >= FLASH_MS) return rest;                                    // After the strike
+  CRGB full = listColor(look, rest, (float)inFlash / FLASH_MS, led, ledCount);
+  if (flash == 0) return full;
+  uint8_t strength = FLASH_WEAKEST_PERCENT +
+                     ((more >> (8 * flash + 4)) & 0xF) * (100 - FLASH_WEAKEST_PERCENT) / 15;
+  return fadeBetween(rest, full, strength / 100.0f);
+}
+
 // Brightness factor (255 = full) for one LED. Each LED reads its own
 // 'spot' in a smooth noise pattern, so LEDs flicker independently.
 // flicker: in %, 0 = steady, 100 = deepest dips.
@@ -230,12 +284,14 @@ inline uint8_t flickerScale(uint16_t spot, uint8_t flicker) {
 // flicker and the dropouts change over from one look's to the other's as
 // it does. To show a look on its own, give it as 'before' too.
 // 'spot' picks the LED's place in the flicker pattern: give each LED a
-// different one. 'groupSpot' picks when a failing look goes out: LEDs
-// with the same one (a scene's group, or a ring) fail together.
-// steady = true turns the flicker and the dropouts off.
+// different one. 'groupSpot' picks when a failing look goes out and when
+// lightning strikes: LEDs with the same one (a scene's group, or a ring)
+// do it together. steady = true turns the flicker, the dropouts and the
+// strikes off.
 inline CRGB drawLook(const Look &look, const Look &before, float phase, uint8_t led,
                      uint8_t ledCount, uint16_t spot, uint16_t groupSpot, bool steady) {
   CRGB color = lookColor(look, endColor(before, led, ledCount), phase, led, ledCount);
+  if (look.effect == LIGHTNING && !steady) color = lightningColor(look, groupSpot, led, ledCount);
   if (!steady) {
     float arrived = arrival(look, phase);
     uint8_t flicker = (uint8_t)(lookFlicker(before) + (lookFlicker(look) - lookFlicker(before)) * arrived);

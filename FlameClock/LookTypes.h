@@ -43,10 +43,13 @@ enum Effect : uint8_t {
                   // then rests on the last color until the cycle ends. Each
                   // pulse plays the color list quickly. Amount = how many
                   // pulses, 1 to 8.
-  FAILING         // Fades through the colors, steady, like GRADIENT, but goes
+  FAILING,        // Fades through the colors, steady, like GRADIENT, but goes
                   // out for a moment or stutters at random times, like a bad
                   // wire. A group's LEDs fail together. Amount = how often
                   // it fails, in %.
+  LIGHTNING       // Rests on the last color, and at random times strikes: 1 to
+                  // 4 quick flashes, each playing the color list. A group's
+                  // LEDs strike together. Amount = how often it strikes, in %.
 };
 
 // ---- Where a look's colors come from ----
@@ -77,12 +80,12 @@ inline CRGB rainbowColor(uint8_t brightness, uint8_t paleness) {
 // The color list can be any length. Its colors share the cycle equally,
 // and the last one is where the look ends.
 struct Look {
-  Effect effect;              // GRADIENT, FLAME, HEARTBEAT, PULSES or FAILING
+  Effect effect;              // GRADIENT, FLAME, HEARTBEAT, PULSES, FAILING or LIGHTNING
   const ColorStop *stops;     // The color list
   uint8_t stopCount;          // How many colors are in the list (counted for you)
   uint8_t amount;             // What it means depends on the effect (FLAME: flicker %,
                               // HEARTBEAT: strength of the 2nd beat %, PULSES: how many,
-                              // FAILING: how often it fails %)
+                              // FAILING: how often it fails %, LIGHTNING: how often it strikes %)
   ColorStyle colors;          // FIXED_COLORS or RAINBOW_COLORS
 
   template <size_t N>

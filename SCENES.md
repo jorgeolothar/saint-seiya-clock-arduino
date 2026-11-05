@@ -72,6 +72,7 @@ These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too.
 | `HEART` | A heartbeat: two quick red beats, resting on a dark red glow. A cycle ms of `1000` = 60 beats a minute |
 | `BEACON` | A burst of 3 short white flashes, then dark. The cycle ms is how often the burst comes |
 | `FAULTY_LIGHT` | A cold white light that goes out for a moment or stutters now and then, like a bad wire |
+| `STORM_SKY` | A dim stormy blue sky, struck now and then by 1 to 4 quick white flashes |
 
 Scene looks are written the same way as flames: see [Making your own flame](README.md#️-making-your-own-flame) in the README.
 
@@ -137,6 +138,27 @@ const Look FAULTY_LIGHT               = { FAILING, FAULTY_LIGHT_COLORS, 30, FIXE
 **A group's LEDs fail together,** like one light: the whole room goes dark at once. For lights that fail on their own, like two street lamps, make each light its own group with the same hour. Different groups fail at different moments, and looks with different amounts fail at different rates.
 
 The failures follow real time, not the group's cycle, so they're the same whatever the cycle ms. With one color, the cycle ms doesn't matter: use `0`. A failing light doesn't flicker. `MODE_FREEZE` and `MODE_COLOR_TEST` show it steady.
+
+### ⛈️ Lightning
+
+A look with the `LIGHTNING` effect rests on its **last color**, and now and then lightning strikes: 1 to 4 quick flashes, each playing the color list. The first flash is at full strength, and the others at 40 to 100%. The amount is how often it strikes, in %:
+
+```cpp
+const ColorStop LIGHTNING_COLORS[] = { { SNAP, ICE_WHITE }, { EARLY_FADE, STORM_BLUE } };
+const Look STORM_SKY               = { LIGHTNING, LIGHTNING_COLORS, 30, FIXED_COLORS };
+```
+
+| Amount | How often it strikes |
+|---|---|
+| `100` | Every 2 seconds |
+| `30` | About every 7 seconds, at random |
+| `10` | About every 20 seconds, at random |
+
+Each flash takes 150 ms, and the next one follows 60 to 180 ms after it starts. A strike is over in under 0.7 seconds.
+
+**A group's LEDs strike together,** like one sky. For clouds that strike on their own, make each cloud its own group with the same hour.
+
+Like a failing light, lightning follows real time, so the cycle ms doesn't matter: use `0`. It doesn't flicker. `MODE_FREEZE` shows its resting color, and `MODE_COLOR_TEST` shows its first color.
 
 ## 🧪 Test modes
 
