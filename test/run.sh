@@ -23,7 +23,7 @@ build() {
 }
 
 echo "== Regression: the working folder against $ref =="
-mkdir -p "$work/before" "$work/after/FlameClock" "$work/strip/FlameClock"
+mkdir -p "$work/before" "$work/after/FlameClock" "$work/scenes/FlameClock"
 git -C "$repo" archive "$ref" FlameClock | tar -x -C "$work/before"
 cp "$repo"/FlameClock/* "$work/after/FlameClock/"
 enable_rings "$work/before/FlameClock"
@@ -48,10 +48,10 @@ else
 fi
 
 echo
-echo "== Checks: the current sketch, with the test strip switched on =="
-cp "$repo"/FlameClock/* "$work/strip/FlameClock/"
-sed -i 's#^// \#define USE_TEST_STRIP#\#define USE_TEST_STRIP#' "$work/strip/FlameClock/FlameClock.ino"
-build checks.cpp "$work/strip/FlameClock" "$work/checks"
+echo "== Checks: the current sketch, with every temple scene switched on =="
+cp "$repo"/FlameClock/* "$work/scenes/FlameClock/"
+sed -i 's#^// \#define USE_\(SANCTUARY\|ASGARD\|POSEIDON\|HADES\)#\#define USE_\1#' "$work/scenes/FlameClock/Scenes.h"
+build checks.cpp "$work/scenes/FlameClock" "$work/checks"
 checks_ok=1
 "$work/checks" || checks_ok=0
 

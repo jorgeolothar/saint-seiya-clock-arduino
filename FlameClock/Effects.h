@@ -108,11 +108,19 @@ inline uint8_t flickerScale(uint16_t spot, uint8_t flicker) {
   return (uint8_t)map(n, 40, 215, lowest, 255);
 }
 
-// A look's color at 'phase', with its flicker. 'spot' picks the LED's
-// place in the flicker pattern: give each LED a different one.
-inline CRGB renderLook(const Look &look, CRGB from, float phase,
-                       uint8_t led, uint8_t ledCount, uint16_t spot) {
-  CRGB color = lookColor(look, from, phase, led, ledCount);
-  color.nscale8(flickerScale(spot, lookFlicker(look)));
+// Draws one LED: 'look' at 'phase', taking over from 'before'. The LED
+// fades from the last color of 'before' into the look's colors, and the
+// flicker changes over from one look's to the other's as it does.
+// To show a look on its own, give it as 'before' too.
+// 'spot' picks the LED's place in the flicker pattern: give each LED a
+// different one. steady = true turns the flicker off.
+inline CRGB drawLook(const Look &look, const Look &before, float phase,
+                     uint8_t led, uint8_t ledCount, uint16_t spot, bool steady) {
+  CRGB color = lookColor(look, endColor(before, led, ledCount), phase, led, ledCount);
+  if (!steady) {
+    float arrived = arrival(look, phase);
+    uint8_t flicker = (uint8_t)(lookFlicker(before) + (lookFlicker(look) - lookFlicker(before)) * arrived);
+    color.nscale8(flickerScale(spot, flicker));
+  }
   return color;
 }
