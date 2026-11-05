@@ -38,10 +38,22 @@ Each group is one line in **Scenes.h**, in the order its LEDs are wired: the gro
 | **Off look** | The look while it's off. `OFF` = dark, `CINDERS` = a dim flickering glow |
 | **Cycle ms** | One cycle of the on look, in thousandths of a second (`2000` = 2 seconds, up to `65000`). `0` = fade in and hold |
 | **Repeat** | What happens after one cycle: `REPEAT` = again and again, `ONCE_HOLD` = stay on the last color, `ONCE_OFF` = turn to the off look |
+| **Amount** | Optional. The on look's amount for this group only: see below. Leave it out to use the look's own amount |
 
 When a group turns on, its look fades in from the off look. With `REPEAT`, each cycle starts where the last one ended, so a look whose colors go back and forth pulses smoothly.
 
 Groups can share an hour. A throne can be several groups, each with its own look, and lights that should act on their own, like street lamps, are one group each.
+
+**A group's own amount.** Add an amount at the end of a line to change the on look's amount for that group only, so several groups can share one look but flicker, fail or strike more or less. It replaces whatever the amount means for that look: the flicker for a flame, how often a light fails, how many pulses, and so on.
+
+```cpp
+//  hour  LEDs  on look       off look  cycle ms  repeat  amount
+  { 1,    2,    FAULTY_LIGHT, OFF,      0,        REPEAT },        // lamp 1: FAULTY_LIGHT's own 30%
+  { 1,    2,    FAULTY_LIGHT, OFF,      0,        REPEAT, 10 },    // lamp 2: fails less often
+  { 1,    2,    FAULTY_LIGHT, OFF,      0,        REPEAT, 60 },    // lamp 3: fails more often
+```
+
+This saves writing a new look for each amount, and each look you write takes a little memory, while an amount on a line takes none.
 
 ## ⚙️ The settings of each scene
 
@@ -135,7 +147,7 @@ const Look FAULTY_LIGHT               = { FAILING, FAULTY_LIGHT_COLORS, 30, FIXE
 | `30` | About every 2.7 seconds, at random |
 | `10` | About every 8 seconds, at random |
 
-**A group's LEDs fail together,** like one light: the whole room goes dark at once. For lights that fail on their own, like two street lamps, make each light its own group with the same hour. Different groups fail at different moments, and looks with different amounts fail at different rates.
+**A group's LEDs fail together,** like one light: the whole room goes dark at once. For lights that fail on their own, like two street lamps, make each light its own group with the same hour. Different groups fail at different moments, and with [their own amounts](#️-setting-up-the-groups) they fail at different rates.
 
 The failures follow real time, not the group's cycle, so they're the same whatever the cycle ms. With one color, the cycle ms doesn't matter: use `0`. A failing light doesn't flicker. `MODE_FREEZE` and `MODE_COLOR_TEST` show it steady.
 
@@ -156,7 +168,7 @@ const Look STORM_SKY               = { LIGHTNING, LIGHTNING_COLORS, 30, FIXED_CO
 
 Each flash takes 150 ms, and the next one follows 60 to 180 ms after it starts. A strike is over in under 0.7 seconds.
 
-**A group's LEDs strike together,** like one sky. For clouds that strike on their own, make each cloud its own group with the same hour.
+**A group's LEDs strike together,** like one sky. For clouds that strike on their own, make each cloud its own group with the same hour. To make one cloud strike more often than the others, give its line its own amount.
 
 Like a failing light, lightning follows real time, so the cycle ms doesn't matter: use `0`. It doesn't flicker. `MODE_FREEZE` shows its resting color, and `MODE_COLOR_TEST` shows its first color.
 

@@ -391,6 +391,44 @@ static void checkLightning() {
   fakeMillis = 0;
 }
 
+static void checkGroupAmount() {
+  printf("A group's own amount (PULSES, red then blue, 3 pulses):\n");
+  const Look burst = { PULSES, RED_BLUE, 3, FIXED_COLORS };
+  const Group own(1, 1, burst, OFF, 1000, REPEAT), five(1, 1, burst, OFF, 1000, REPEAT, 5);
+  const float slot = PULSE_LENGTH + PULSE_GAP, mid = PULSE_LENGTH / 2;
+  const uint32_t fourth = 1000 + (uint32_t)(1000 * (3 * slot + mid) + 0.5f);
+  check(own.amount == LOOK_AMOUNT, "left out: the look's own amount");
+  check(drawGroup(own, true, fourth, 0, 0, 0, true) == B, "the look's own 3 pulses: no 4th");
+  check(near(drawGroup(five, true, fourth, 0, 0, 0, true), R, 2), "amount 5 for this group: a 4th pulse");
+  check(near(drawGroup(five, true, 1000 + (uint32_t)(1000 * (4 * slot + mid) + 0.5f), 0, 0, 0, true), R, 2) &&
+        drawGroup(five, true, 1000 + (uint32_t)(1000 * (5 * slot + mid) + 0.5f), 0, 0, 0, true) == B, "and a 5th, but no 6th");
+  check(near(drawGroup(five, true, (uint32_t)(1000 * (4 * slot + mid) + 0.5f), 0, 0, 0, true), R, 2),
+        "in the first cycle too");
+  check(burst.amount == 3, "the look itself is unchanged");
+
+  const Group calm(ALWAYS, 1, STRIKING, OFF, 0, REPEAT, 0);
+  bool still = true;
+  for (uint32_t ms = 0; ms < 100000; ms += 3) {
+    fakeMillis = ms;
+    still = still && drawGroup(calm, true, ms, 0, 0, 7, false) == B;
+  }
+  check(still, "LIGHTNING at 100%, amount 0 for this group: never strikes");
+  const Look steadyFlame = { FLAME, RED_BLUE, 0, FIXED_COLORS };
+  const Group flickering(1, 1, steadyFlame, OFF, 1000, REPEAT, 100);
+  bool flickers = false;
+  CRGB first = CRGB(0, 0, 0);
+  for (uint32_t ms = 0; ms < 20000; ms += 7) {
+    fakeMillis = ms;
+    CRGB c = drawGroup(flickering, true, 1000, 0, 0, 0, false);   // The 2nd cycle starting, still on blue
+    if (ms == 0) first = c;
+    flickers = flickers || !(c == first);
+  }
+  check(flickers, "FLAME at 0%, flicker 100 for this group: flickers, cycle after cycle");
+  const Group own2 = SCENES[0]->groups[0].get();
+  check(own2.amount == LOOK_AMOUNT, "the Sanctuary's groups read back with the look's own amount");
+  fakeMillis = 0;
+}
+
 int main() {
   setup();
 
@@ -441,6 +479,7 @@ int main() {
   checkPulses();
   checkFailing();
   checkLightning();
+  checkGroupAmount();
   checkScenes();
 
   printf(failures ? "%d check(s) FAILED\n" : "All checks passed\n", failures);
