@@ -155,8 +155,20 @@ static void checkScenes() {
   check(spotlight.leds[3] == R && spotlight.leds[6] == R, "color test: every group shows its on look's first color");
 
   printf("The scenes in Scenes.h:\n");
-  check(NUM_SCENES == 4, "all four scenes compile (run.sh switches them all on)");
-  const Scene &sanctuaryScene = *SCENES[0];
+  check(NUM_SCENES == 5, "all five scenes compile (run.sh switches them all on)");
+  const Scene &demoScene = *SCENES[0];
+  bool allOn = true;
+  int shown[BUILDUP + 1] = {};
+  for (uint8_t i = 0; i < demoScene.groupCount; i++) {
+    const Group group = demoScene.groups[i].get();
+    allOn = allOn && group.hour == ALWAYS && group.ledCount == 1;
+    shown[group.on->effect]++;
+  }
+  bool eachOnce = true;
+  for (int e = GRADIENT; e <= BUILDUP; e++) eachOnce = eachOnce && shown[e] == 1;
+  check(demoScene.groupCount == BUILDUP + 1 && allOn, "the demo: 1 LED for each effect, always on");
+  check(eachOnce, "it shows every effect, once");
+  const Scene &sanctuaryScene = *SCENES[1];
   const Group aries = sanctuaryScene.groups[0].get(), athena = sanctuaryScene.groups[12].get();
   check(sanctuaryScene.groupCount == 13 && sanctuaryScene.ledCount == 26 && sanctuaryScene.hours == 12,
         "the Sanctuary: 13 temples, 26 LEDs, 12 hours");
@@ -425,7 +437,7 @@ static void checkGroupAmount() {
     flickers = flickers || !(c == first);
   }
   check(flickers, "FLAME at 0%, flicker 100 for this group: flickers, cycle after cycle");
-  const Group own2 = SCENES[0]->groups[0].get();
+  const Group own2 = SCENES[1]->groups[0].get();
   check(own2.amount == LOOK_AMOUNT, "the Sanctuary's groups read back with the look's own amount");
   fakeMillis = 0;
 }
@@ -502,7 +514,7 @@ static void checkPause() {
   check(smooth.amount == 0 && smooth.pauseMs == 500 &&
         near(drawGroup(smooth, true, 1500 + 300, 0, 0, 0, true), lookColor(noThrobs, R, 0.3f, 0, 1), 1),
         "with its own amount too");
-  const Group own = SCENES[0]->groups[0].get();
+  const Group own = SCENES[1]->groups[0].get();
   check(own.pauseMs == 0, "the Sanctuary's groups read back with no pause");
 }
 

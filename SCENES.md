@@ -1,15 +1,32 @@
 # 🏛️ Scenes
 
-Besides the clock rings, the Arduino can light up to four scenes. Each scene is one chain of LEDs on its own pin, split into **groups**: a few LEDs that light up together, like a temple, part of a throne or a street lamp. Each group lights up in its hour.
+Besides the clock rings, the Arduino can light up to five scenes. Each scene is one chain of LEDs on its own pin, split into **groups**: a few LEDs that light up together, like a temple, part of a throne or a street lamp. Each group lights up in its hour.
 
-The scenes are optional, and all four are switched off in the sketch as it comes. Switched off, they use no memory on the Arduino.
+The scenes are optional, and all five are switched off in the sketch as it comes. Switched off, they use no memory on the Arduino.
 
 | Scene | Groups | Cycle | Pin |
 |---|---|---|---|
+| **Demo** | 1 LED for each effect, always on | — | A3 |
 | **Sanctuary** | 12 zodiac temples, one per hour, and Athena's temple, always on | 12 hours, from midnight and from noon: Aries 12–1 o'clock … Pisces 11–12 | D10 |
 | **Asgard** | 7 temples, one per hour, then Odin's throne in hour 8 | 8 hours, 3 times a day | D11 |
 | **Poseidon** | 7 temples, one per hour, then Poseidon's throne in hour 8 | 8 hours, 3 times a day | D12 |
 | **Hades** | 7 temples, one per hour, then Hades' throne in hour 8 | 8 hours, 3 times a day | A0 |
+
+## 🎬 The demo
+
+The **Demo** scene shows every effect at once, one LED each, so you can see them before setting up a scene of your own. Wire 7 LEDs (a strip, or the first 7 LEDs of a ring) to **A3**, and switch on `USE_DEMO`:
+
+| LED | Effect | Look |
+|---|---|---|
+| 1 | `GRADIENT` | `SEA` |
+| 2 | `FLAME` | `FIRE` |
+| 3 | `HEARTBEAT` | `HEART`, with a pause: it beats every 3 seconds |
+| 4 | `PULSES` | `BEACON` |
+| 5 | `FAILING` | `FAULTY_LIGHT` |
+| 6 | `LIGHTNING` | `STORM_SKY`, with its own amount of 60, so it strikes more often |
+| 7 | `BUILDUP` | `FREEZE_RAY`, with a pause: it charges every 7 seconds |
+
+Its lines in **Scenes.h** are also an example of a group's own amount and of `pauseThenRepeat`.
 
 ## 🔛 Switching a scene on
 
@@ -72,7 +89,7 @@ The cycle should fit a day evenly (8 or 12 hours, for example). If it doesn't, i
 
 ## 🎨 The scene looks
 
-These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too.
+These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too. To see each effect before picking one, switch on the [demo](#-the-demo).
 
 | Look | What it is |
 |---|---|
@@ -219,6 +236,7 @@ const PowerLimit SANCTUARY_POWER = { 300, 20 };   // most milliamps, milliamps p
 
 | Connection | Pin |
 |---|---|
+| DIN — Demo | A3 |
 | DIN — Sanctuary | D10 |
 | DIN — Asgard | D11 |
 | DIN — Poseidon | D12 |
@@ -235,8 +253,9 @@ The Uno and Nano have 2 KB of memory. Each scene switched on takes some of it fo
 | Switched on | Memory used |
 |---|---|
 | 1 ring, no scenes | 487 bytes (23%) |
+| 1 ring and the demo | 673 bytes (32%) |
 | 1 ring and the Sanctuary | 660 bytes (32%) |
-| 3 rings and all four scenes | 1,181 bytes (57%) |
+| 3 rings and all five scenes | 1,343 bytes (65%) |
 
 If the clock resets by itself or the LEDs show garbage, memory may be running out: switch off a scene you don't need.
 

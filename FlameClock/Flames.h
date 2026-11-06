@@ -43,7 +43,9 @@
 //      changes into that color.
 //
 //  The four values of the second line, in order:
-//    1. effect ....... FLAME = flickers, GRADIENT = steady
+//    1. effect ....... FLAME = flickers, GRADIENT = steady. The other
+//                      effects are made for scenes: switch on the DEMO
+//                      in Scenes.h to see them all.
 //    2. color list ... the name of the first line
 //    3. flicker % .... 0 = steady, 100 = strongest. GRADIENT ignores it.
 //    4. colors ....... FIXED_COLORS = the colors as written

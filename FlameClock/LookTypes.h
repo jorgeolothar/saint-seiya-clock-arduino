@@ -31,6 +31,7 @@ struct ColorStop {
 };
 
 // ---- What a look does with its colors ----
+// To see them all, switch on the DEMO scene in Scenes.h: one LED each.
 enum Effect : uint8_t {
   GRADIENT,       // Fades through the colors, steady. The amount is not used.
                   // With a single color, this is a solid color.

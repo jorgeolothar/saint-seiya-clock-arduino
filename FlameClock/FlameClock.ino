@@ -280,6 +280,10 @@ CRGB leds[MAX_RINGS][LED_PER_RING];         // One row of LEDs per ring
 
 // The scenes switched on in Scenes.h: their LEDs, and where each
 // one starts in the flicker pattern
+#ifdef USE_DEMO
+CRGB demoLeds[ledsIn(DEMO)];
+const Scene demo(SCENE_GROUPS(DEMO), demoLeds, DEMO_LIGHTING, DEMO_START, DEMO_POWER, 36000);
+#endif
 #ifdef USE_SANCTUARY
 CRGB sanctuaryLeds[ledsIn(SANCTUARY)];
 const Scene sanctuary(SCENE_GROUPS(SANCTUARY), sanctuaryLeds, SANCTUARY_LIGHTING, SANCTUARY_START, SANCTUARY_POWER, 4000);
@@ -298,6 +302,9 @@ const Scene hades(SCENE_GROUPS(HADES), hadesLeds, HADES_LIGHTING, HADES_START, H
 #endif
 
 const Scene *const SCENES[] = {
+#ifdef USE_DEMO
+  &demo,
+#endif
 #ifdef USE_SANCTUARY
   &sanctuary,
 #endif
@@ -641,6 +648,9 @@ void setup() {
   if (NUM_CLOCKS >= 3) FastLED.addLeds<WS2812B, RING3_PIN, COLOR_ORDER>(leds[2], LED_PER_RING);
   if (NUM_CLOCKS >= 4) FastLED.addLeds<WS2812B, RING4_PIN, COLOR_ORDER>(leds[3], LED_PER_RING);
   // One data pin per scene
+#ifdef USE_DEMO
+  FastLED.addLeds<DEMO_CHIP, DEMO_PIN, DEMO_ORDER>(demoLeds, demo.ledCount);
+#endif
 #ifdef USE_SANCTUARY
   FastLED.addLeds<SANCTUARY_CHIP, SANCTUARY_PIN, SANCTUARY_ORDER>(sanctuaryLeds, sanctuary.ledCount);
 #endif
