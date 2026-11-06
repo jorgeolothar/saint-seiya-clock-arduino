@@ -54,7 +54,9 @@ inline CRGB drawGroup(const Group &group, bool on, uint32_t onForMs,
       phase = (float)onForMs / (float)group.cycleMs;
     } else if (group.repeat == REPEAT) {   // Again: each cycle starts where the last one ended
       before = &onLook;
-      phase = (float)(onForMs % group.cycleMs) / (float)group.cycleMs;
+      uint32_t inPeriod = onForMs % ((uint32_t)group.cycleMs + group.pauseMs);
+      if (inPeriod < group.cycleMs)      // Else the pause: the look's end color
+        phase = (float)inPeriod / (float)group.cycleMs;
     } else if (group.repeat == ONCE_OFF) {
       look = group.off;
     }                                    // ONCE_HOLD: stays on the last color

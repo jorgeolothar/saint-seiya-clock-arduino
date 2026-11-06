@@ -37,7 +37,7 @@ Each group is one line in **Scenes.h**, in the order its LEDs are wired: the gro
 | **On look** | The look while it's on: any look from `SceneLooks.h` or `Flames.h` |
 | **Off look** | The look while it's off. `OFF` = dark, `CINDERS` = a dim flickering glow |
 | **Cycle ms** | One cycle of the on look, in thousandths of a second (`2000` = 2 seconds, up to `65000`). `0` = fade in and hold |
-| **Repeat** | What happens after one cycle: `REPEAT` = again and again, `ONCE_HOLD` = stay on the last color, `ONCE_OFF` = turn to the off look |
+| **Repeat** | What happens after one cycle: `REPEAT` = again and again, `pauseThenRepeat(6000)` = wait 6 seconds on the end color between cycles, `ONCE_HOLD` = stay on the last color, `ONCE_OFF` = turn to the off look |
 | **Amount** | Optional. The on look's amount for this group only: see below. Leave it out to use the look's own amount |
 
 When a group turns on, its look fades in from the off look. With `REPEAT`, each cycle starts where the last one ended, so a look whose colors go back and forth pulses smoothly.
@@ -188,7 +188,12 @@ const Look FREEZE_RAY               = { BUILDUP, FREEZE_RAY_COLORS, 60, FIXED_CO
 | 80 – 85% | The burst: the last color, at full |
 | 85 – 100% | Fades back down to the first color, quickly at first |
 
-The group's **cycle ms** is how long one charge, burst and fade back take: `4000` = 4 seconds. Use `REPEAT` to charge again at once, or `ONCE_HOLD` for a single charge that settles on the first color. A buildup doesn't flicker.
+The group's **cycle ms** is how long one charge, burst and fade back take: `4000` = 4 seconds. Use `REPEAT` to charge again at once, `pauseThenRepeat(...)` to rest on the first color between charges, or `ONCE_HOLD` for a single charge that settles on the first color. A buildup doesn't flicker.
+
+```cpp
+//  hour  LEDs  on look     off look  cycle ms  repeat
+  { 1,    4,    FREEZE_RAY, OFF,      4000,     pauseThenRepeat(6000) },   // Charges for 4 s, rests for 6 s
+```
 
 ## 🧪 Test modes
 

@@ -35,6 +35,8 @@
 //                 look just fades in and holds its last color.
 //    repeat ..... after one cycle of the on look:
 //                   REPEAT ..... play it again, and again
+//                   pauseThenRepeat(6000) .. wait 6 seconds on its
+//                                end color, then play it again
 //                   ONCE_HOLD .. stay on its last color
 //                   ONCE_OFF ... turn to the off look
 //    amount ..... optional: the on look's amount for this group only,

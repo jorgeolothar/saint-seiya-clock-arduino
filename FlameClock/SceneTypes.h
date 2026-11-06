@@ -31,6 +31,17 @@ enum Repeat : uint8_t {
   ONCE_OFF        // Turns to the group's off look
 };
 
+// ---- A group's repeat, with a pause between cycles ----
+// pauseThenRepeat(6000) plays the look, waits 6 seconds on its end
+// color, then plays it again. REPEAT, ONCE_HOLD and ONCE_OFF work here
+// too, with no pause.
+struct Again {
+  Repeat repeat;
+  uint16_t pauseMs;
+  constexpr Again(Repeat again, uint16_t pause = 0) : repeat(again), pauseMs(pause) {}
+};
+constexpr Again pauseThenRepeat(uint16_t pauseMs) { return Again(REPEAT, pauseMs); }
+
 // ---- As a group's amount: the on look's own amount ----
 const uint8_t LOOK_AMOUNT = 255;
 
@@ -42,12 +53,13 @@ struct Group {
   const Look *off;        // The look while it is off
   uint16_t cycleMs;       // One cycle of the on look, in thousandths of a second (0 = holds its last color)
   Repeat repeat;          // REPEAT, ONCE_HOLD or ONCE_OFF
+  uint16_t pauseMs;       // With REPEAT: the wait between cycles, in thousandths of a second
   uint8_t amount;         // The on look's amount for this group, or LOOK_AMOUNT for its own
 
   constexpr Group(uint8_t onHour, uint8_t leds, const Look &onLook, const Look &offLook,
-                  uint16_t cycle, Repeat again, uint8_t amt = LOOK_AMOUNT)
-    : hour(onHour), ledCount(leds), on(&onLook), off(&offLook), cycleMs(cycle), repeat(again),
-      amount(amt) {}
+                  uint16_t cycle, Again again, uint8_t amt = LOOK_AMOUNT)
+    : hour(onHour), ledCount(leds), on(&onLook), off(&offLook), cycleMs(cycle),
+      repeat(again.repeat), pauseMs(again.pauseMs), amount(amt) {}
   Group() = default;      // An empty group, to copy one out of program space into
 };
 

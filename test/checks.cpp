@@ -469,6 +469,43 @@ static void checkBuildup() {
         "and each later cycle starts and ends on the first color");
 }
 
+static void checkPause() {
+  printf("A pause between cycles (BUILDUP of 1000 ms, then 500 ms of pause):\n");
+  const Look charge = { BUILDUP, RED_BLUE, 60, FIXED_COLORS };
+  const Group plain(1, 1, charge, OFF, 1000, REPEAT), paused(1, 1, charge, OFF, 1000, pauseThenRepeat(500));
+  check(plain.pauseMs == 0 && Group(1, 1, charge, OFF, 1000, ONCE_HOLD).pauseMs == 0, "REPEAT and ONCE_HOLD: no pause");
+  bool firstSame = true, secondLater = true, thirdLater = true;
+  for (uint32_t ms = 0; ms < 1000; ms += 7) {
+    CRGB c = drawGroup(plain, true, ms, 0, 0, 0, true);
+    firstSame = firstSame && drawGroup(paused, true, ms, 0, 0, 0, true) == c;
+    CRGB again = drawGroup(plain, true, 1000 + ms, 0, 0, 0, true);
+    secondLater = secondLater && drawGroup(paused, true, 1500 + ms, 0, 0, 0, true) == again;
+    thirdLater = thirdLater && drawGroup(paused, true, 3000 + ms, 0, 0, 0, true) == again;
+  }
+  check(firstSame, "the 1st cycle is unchanged");
+  check(drawGroup(paused, true, 1000, 0, 0, 0, true) == R && drawGroup(paused, true, 1250, 0, 0, 0, true) == R &&
+        drawGroup(paused, true, 1499, 0, 0, 0, true) == R, "the pause rests on the look's end color");
+  check(secondLater, "the 2nd cycle plays as without a pause, 500 ms later");
+  check(thirdLater, "and the 3rd, 1000 ms later");
+  check(drawGroup(paused, true, 2999, 0, 0, 0, true) == R && !(drawGroup(paused, true, 2400, 0, 0, 0, true) == R),
+        "each cycle is followed by a pause");
+
+  const Look gradient = { GRADIENT, RED_BLUE, 0, FIXED_COLORS };
+  const Group fade(1, 1, gradient, OFF, 1000, pauseThenRepeat(2000));
+  check(drawGroup(fade, true, 1000, 0, 0, 0, true) == B && drawGroup(fade, true, 2999, 0, 0, 0, true) == B &&
+        drawGroup(fade, true, 3000, 0, 0, 0, true) == B &&
+        near(drawGroup(fade, true, 3500, 0, 0, 0, true), lookColor(gradient, B, 0.5f, 0, 1), 1),
+        "a gradient rests on its last color, then plays from it again");
+
+  const Group smooth(1, 1, charge, OFF, 1000, pauseThenRepeat(500), 0);
+  const Look noThrobs = { BUILDUP, RED_BLUE, 0, FIXED_COLORS };
+  check(smooth.amount == 0 && smooth.pauseMs == 500 &&
+        near(drawGroup(smooth, true, 1500 + 300, 0, 0, 0, true), lookColor(noThrobs, R, 0.3f, 0, 1), 1),
+        "with its own amount too");
+  const Group own = SCENES[0]->groups[0].get();
+  check(own.pauseMs == 0, "the Sanctuary's groups read back with no pause");
+}
+
 int main() {
   setup();
 
@@ -520,6 +557,7 @@ int main() {
   checkFailing();
   checkLightning();
   checkBuildup();
+  checkPause();
   checkGroupAmount();
   checkScenes();
 
