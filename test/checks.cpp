@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "FastLED.h"
 #include "EEPROM.h"
 
@@ -429,6 +430,45 @@ static void checkGroupAmount() {
   fakeMillis = 0;
 }
 
+static void checkBuildup() {
+  printf("BUILDUP (red then blue, throbs 60%% deep), starting from green:\n");
+  const Look charge = { BUILDUP, RED_BLUE, 60, FIXED_COLORS };
+  const Look smooth = { BUILDUP, RED_BLUE, 0, FIXED_COLORS };
+  auto at = [](float charged) { return charged * CHARGE; };              // A point of the charge, as a phase
+  auto top = [](float k) { return (float)sqrt(k / THROBS); };          // The top of throb k
+  check(lookColor(charge, G, 0.0f, 0, 1) == G, "starts from the old color");
+  check(near(lookColor(charge, G, at(top(2)), 0, 1), R, 2), "charging: red at the top of a throb halfway through");
+  CRGB full = listColor(charge, G, top(2.5f), 0, 1), dimmed = full;
+  dimmed.nscale8(255 - 60 * 255 / 100);
+  check(near(lookColor(charge, G, at(top(2.5f)), 0, 1), dimmed, 2), "at the bottom of a throb: 60% darker");
+  check(near(lookColor(smooth, G, at(top(2.5f)), 0, 1), full, 1), "amount 0: no throbs, a smooth rise");
+
+  int firstHalf = 0, secondHalf = 0;
+  bool high = true;
+  for (int i = 0; i <= 4000; i++) {                                   // Count the dips: near full, then clearly darker
+    float charged = i / 4000.0f;
+    CRGB c = lookColor(charge, G, at(charged), 0, 1), plain = listColor(charge, G, charged, 0, 1);
+    float level = (float)(c.r + c.g + c.b) / (plain.r + plain.g + plain.b);
+    if (high && level < 0.7f) { if (charged < 0.5f) firstHalf++; else secondHalf++; high = false; }
+    if (level > 0.85f) high = true;
+  }
+  check(firstHalf + secondHalf == THROBS, "8 throbs while charging");
+  check(secondHalf > 2 * firstHalf, "faster and faster: most of them in the 2nd half");
+
+  check(lookColor(charge, G, CHARGE, 0, 1) == B && lookColor(charge, G, CHARGE + BURST * 0.9f, 0, 1) == B,
+        "the burst: the last color, at full");
+  CRGB fading = lookColor(charge, G, (CHARGE + BURST + 1.0f) / 2, 0, 1);
+  check(fading.r > 128 && fading.b < 128, "then fading back, quickly at first");
+  check(lookColor(charge, G, 1.0f, 0, 1) == R && endColor(charge, 0, 1) == R, "it ends on its first color");
+  check(arrival(smooth, 0.0f) == 0.0f && arrival(smooth, CHARGE / 2) == 1.0f, "it has taken over halfway through the charge");
+  check(drawLook(charge, charge, CHARGE, 0, 1, 0, 0, false) == B, "it doesn't flicker");
+
+  const Group ray(1, 1, charge, OFF, 1000, REPEAT);
+  check(drawGroup(ray, true, 0, 0, 0, 0, true) == K, "in a group, the 1st cycle starts from the off look");
+  check(drawGroup(ray, true, 1000, 0, 0, 0, true) == R && near(drawGroup(ray, true, 1999, 0, 0, 0, true), R, 2),
+        "and each later cycle starts and ends on the first color");
+}
+
 int main() {
   setup();
 
@@ -479,6 +519,7 @@ int main() {
   checkPulses();
   checkFailing();
   checkLightning();
+  checkBuildup();
   checkGroupAmount();
   checkScenes();
 

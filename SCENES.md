@@ -59,7 +59,7 @@ This saves writing a new look for each amount, and each look you write takes a l
 
 | Setting | What it means |
 |---|---|
-| `..._PIN` | The Arduino pin the chain's DIN is wired to. A0 to A3 work as well as D2 to D13 |
+| `..._PIN` | The Arduino pin the chain's DIN is wired to. A0 to A3 work as well as D2 to D13. |
 | `..._CHIP` | The LED chip: `WS2812B`, or for 5mm LEDs often `PL9823` or `APA106` |
 | `..._ORDER` | `GRB`, or `RGB` if red and green look swapped |
 | `..._POWER` | The scene's power limit: `{ most milliamps, milliamps per color }`. See [Power limit](#-power-limit) |
@@ -85,6 +85,7 @@ These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too.
 | `BEACON` | A burst of 3 short white flashes, then dark. The cycle ms is how often the burst comes |
 | `FAULTY_LIGHT` | A cold white light that goes out for a moment or stutters now and then, like a bad wire |
 | `STORM_SKY` | A dim stormy blue sky, struck now and then by 1 to 4 quick white flashes |
+| `FREEZE_RAY` | A dim teal that charges up to ice blue, throbbing faster and faster, bursts in ice white, and fades back down |
 
 Scene looks are written the same way as flames: see [Making your own flame](README.md#️-making-your-own-flame) in the README.
 
@@ -171,6 +172,23 @@ Each flash takes 150 ms, and the next one follows 60 to 180 ms after it starts. 
 **A group's LEDs strike together,** like one sky. For clouds that strike on their own, make each cloud its own group with the same hour. To make one cloud strike more often than the others, give its line its own amount.
 
 Like a failing light, lightning follows real time, so the cycle ms doesn't matter: use `0`. It doesn't flicker. `MODE_FREEZE` shows its resting color, and `MODE_COLOR_TEST` shows its first color.
+
+### 🔋 Buildup looks
+
+A look with the `BUILDUP` effect charges up through its color list, throbbing faster and faster, then bursts on its **last color** and fades back down to its **first color**, ready to charge again. The amount is how deep the throbs are, in %: `0` = a smooth rise, `100` = each throb goes dark.
+
+```cpp
+const ColorStop FREEZE_RAY_COLORS[] = { { SMOOTH_FADE, DIM_TEAL }, { STEADY_FADE, ICE_BLUE }, { LATE_FADE, ICE_WHITE } };
+const Look FREEZE_RAY               = { BUILDUP, FREEZE_RAY_COLORS, 60, FIXED_COLORS };
+```
+
+| Part of the cycle | What the LED does |
+|---|---|
+| 0 – 80% | Charges: plays the color list, throbbing 8 times, faster and faster |
+| 80 – 85% | The burst: the last color, at full |
+| 85 – 100% | Fades back down to the first color, quickly at first |
+
+The group's **cycle ms** is how long one charge, burst and fade back take: `4000` = 4 seconds. Use `REPEAT` to charge again at once, or `ONCE_HOLD` for a single charge that settles on the first color. A buildup doesn't flicker.
 
 ## 🧪 Test modes
 

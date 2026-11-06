@@ -168,9 +168,9 @@ With only one color, the LED fades into it and stays: `SOLID` is a one-color fla
 
 | Value | What it means |
 |---|---|
-| **Effect** | `FLAME` = flickers. `GRADIENT` = steady. `HEARTBEAT` = beats twice, then rests. `PULSES` = a burst of short pulses, then rests. `FAILING` = steady, but goes out or stutters now and then. `LIGHTNING` = rests, and strikes with quick flashes now and then. The last four are made for scenes: see [SCENES.md](SCENES.md#-heartbeat-looks) |
+| **Effect** | `FLAME` = flickers. `GRADIENT` = steady. `HEARTBEAT` = beats twice, then rests. `PULSES` = a burst of short pulses, then rests. `FAILING` = steady, but goes out or stutters now and then. `LIGHTNING` = rests, and strikes with quick flashes now and then. `BUILDUP` = charges up, throbbing faster and faster, then bursts. The last five are made for scenes: see [SCENES.md](SCENES.md#-heartbeat-looks) |
 | **Color list** | The name of the first line |
-| **Amount** | For `FLAME`, the flicker in %: `0` = steady, `100` = strongest. For `HEARTBEAT`, how strong the 2nd beat is, in %. For `PULSES`, how many pulses (1 to 8). For `FAILING`, how often it fails, in %. For `LIGHTNING`, how often it strikes, in %. `GRADIENT` ignores it |
+| **Amount** | For `FLAME`, the flicker in %: `0` = steady, `100` = strongest. For `HEARTBEAT`, how strong the 2nd beat is, in %. For `PULSES`, how many pulses (1 to 8). For `FAILING`, how often it fails, in %. For `LIGHTNING`, how often it strikes, in %. For `BUILDUP`, how deep the throbs are, in %. `GRADIENT` ignores it |
 | **Colors** | `FIXED_COLORS` = the colors as written. `RAINBOW_COLORS` = a rainbow across the LEDs: around a ring, or across a scene group's own LEDs |
 
 **The fades:**

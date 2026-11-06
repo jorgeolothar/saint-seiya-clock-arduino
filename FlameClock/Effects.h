@@ -48,12 +48,17 @@ inline CRGB paint(const Look &look, CRGB color, uint8_t led, uint8_t ledCount) {
   return CRGB(CHSV(hue, 255 - color.g, color.r));
 }
 
-// The first and last colors of a look's color list, on one LED
+// The first color of a look's color list, on one LED, and the color the
+// look ends on: its last color, or for a buildup, which fades back down,
+// its first
 inline CRGB firstColor(const Look &look, uint8_t led, uint8_t ledCount) {
   return paint(look, look.stops[0].color, led, ledCount);
 }
-inline CRGB endColor(const Look &look, uint8_t led, uint8_t ledCount) {
+inline CRGB lastColor(const Look &look, uint8_t led, uint8_t ledCount) {
   return paint(look, look.stops[look.stopCount - 1].color, led, ledCount);
+}
+inline CRGB endColor(const Look &look, uint8_t led, uint8_t ledCount) {
+  return (look.effect == BUILDUP) ? firstColor(look, led, ledCount) : lastColor(look, led, ledCount);
 }
 
 // Where a look is at 'phase' (0.0 to 1.0 through its cycle): which color
@@ -91,6 +96,15 @@ const float SECOND_BEAT_START = SECOND_BEAT_START_PERCENT / 100.0f;
 const float PULSE_LENGTH = PULSE_LENGTH_PERCENT / 100.0f;
 const float PULSE_GAP = PULSE_GAP_PERCENT / 100.0f;
 
+// ---- BUILDUP timing, in % of the cycle ----
+const uint8_t CHARGE_PERCENT = 80;              // Charges up until here
+const uint8_t BURST_PERCENT = 5;                // Then holds the last color this long
+const uint8_t THROBS = 8;                       // How many throbs while charging
+static_assert(CHARGE_PERCENT >= 1 && CHARGE_PERCENT + BURST_PERCENT < 100,
+              "BUILDUP: the charge and the burst must leave time to fade back down");
+const float CHARGE = CHARGE_PERCENT / 100.0f;
+const float BURST = BURST_PERCENT / 100.0f;
+
 // How many pulses a PULSES look has: its amount, from 1 to MOST_PULSES
 inline uint8_t pulseCount(const Look &look) {
   return (look.amount < 1) ? 1 : (look.amount > MOST_PULSES) ? MOST_PULSES : look.amount;
@@ -101,7 +115,8 @@ inline uint8_t pulseCount(const Look &look) {
 inline float arrival(const Look &look, float phase) {
   if (look.effect == LIGHTNING) return 1.0f;                  // It takes over at once
   float first = (look.effect == HEARTBEAT) ? BEAT_LENGTH     // It takes over during
-              : (look.effect == PULSES)    ? PULSE_LENGTH    // its 1st beat or pulse
+              : (look.effect == PULSES)    ? PULSE_LENGTH    // its 1st beat or pulse,
+              : (look.effect == BUILDUP)   ? CHARGE          // or while charging
               : 1.0f;
   phase = (phase < first) ? phase / first : 1.0f;
   uint8_t stop;
@@ -148,6 +163,27 @@ inline CRGB pulsesColor(const Look &look, CRGB from, float phase, uint8_t led, u
   return rest;                                                  // Between pulses, or resting
 }
 
+// A buildup's color at 'phase': the color list played while charging,
+// throbbing faster and faster, then a burst on its last color, fading
+// back to its first
+inline CRGB buildupColor(const Look &look, CRGB from, float phase, uint8_t led, uint8_t ledCount) {
+  if (phase >= CHARGE + BURST) {                                // Fading back down
+    float level = fadeAmount(EARLY_FADE, (phase - CHARGE - BURST) / (1.0f - CHARGE - BURST));
+    return fadeBetween(lastColor(look, led, ledCount), firstColor(look, led, ledCount), level);
+  }
+  if (phase >= CHARGE) return lastColor(look, led, ledCount);   // The burst
+  float charged = phase / CHARGE;                               // Charging
+  CRGB color = listColor(look, from, charged, led, ledCount);
+  float throb = THROBS * charged * charged;                     // Faster and faster
+  throb -= (int)throb;                                          // Where it is in this throb
+  float fromMiddle = 2.0f * throb - 1.0f;                       // -1 to 1
+  if (fromMiddle < 0.0f) fromMiddle = -fromMiddle;
+  float dip = fadeAmount(SMOOTH_FADE, 1.0f - fromMiddle);       // 0 at the top, 1 at the bottom
+  uint8_t depth = (look.amount > 100) ? 100 : look.amount;
+  color.nscale8(255 - (uint8_t)(dip * depth * 255 / 100));
+  return color;
+}
+
 // A look's color at 'phase', before flicker. 'from' is the LED's color
 // before the look started: the look fades from it into its first color.
 // Lightning rests on its last color here: its strikes are drawn by
@@ -156,6 +192,7 @@ inline CRGB lookColor(const Look &look, CRGB from, float phase, uint8_t led, uin
   if (look.effect == LIGHTNING) return endColor(look, led, ledCount);
   if (look.effect == HEARTBEAT) return heartbeatColor(look, from, phase, led, ledCount);
   if (look.effect == PULSES) return pulsesColor(look, from, phase, led, ledCount);
+  if (look.effect == BUILDUP) return buildupColor(look, from, phase, led, ledCount);
   return listColor(look, from, phase, led, ledCount);
 }
 
