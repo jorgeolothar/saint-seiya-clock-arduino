@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "FastLED.h"
 #include "EEPROM.h"
 
@@ -154,8 +155,22 @@ static void checkScenes() {
   check(spotlight.leds[3] == R && spotlight.leds[6] == R, "color test: every group shows its on look's first color");
 
   printf("The scenes in Scenes.h:\n");
-  check(NUM_SCENES == 4, "all four scenes compile (run.sh switches them all on)");
-  const Scene &sanctuaryScene = *SCENES[0];
+  check(NUM_SCENES == 5, "all five scenes compile (run.sh switches them all on)");
+  const Scene &demoScene = *SCENES[0];
+  bool allOn = true;
+  int shown[BUILDUP + 1] = {};
+  for (uint8_t i = 0; i < demoScene.groupCount; i++) {
+    const Group group = demoScene.groups[i].get();
+    allOn = allOn && group.hour == ALWAYS && group.ledCount == 1;
+    shown[group.on->effect]++;
+  }
+  bool eachOnce = true;
+  for (int e = GRADIENT; e <= BUILDUP; e++) eachOnce = eachOnce && shown[e] == 1;
+  check(demoScene.groupCount == BUILDUP + 1 && allOn, "the demo: 1 LED for each effect, always on");
+  check(eachOnce, "it shows every effect, once");
+  check(timesUsed(DEMO_PIN) == 1 && timesUsed(RING1_PIN) == 1 && timesUsed(UNUSED_PIN) == MAX_RINGS - NUM_CLOCKS,
+        "every pin in use has one job, and the unused ring pins are left out");
+  const Scene &sanctuaryScene = *SCENES[1];
   const Group aries = sanctuaryScene.groups[0].get(), athena = sanctuaryScene.groups[12].get();
   check(sanctuaryScene.groupCount == 13 && sanctuaryScene.ledCount == 26 && sanctuaryScene.hours == 12,
         "the Sanctuary: 13 temples, 26 LEDs, 12 hours");
@@ -424,9 +439,85 @@ static void checkGroupAmount() {
     flickers = flickers || !(c == first);
   }
   check(flickers, "FLAME at 0%, flicker 100 for this group: flickers, cycle after cycle");
-  const Group own2 = SCENES[0]->groups[0].get();
+  const Group own2 = SCENES[1]->groups[0].get();
   check(own2.amount == LOOK_AMOUNT, "the Sanctuary's groups read back with the look's own amount");
   fakeMillis = 0;
+}
+
+static void checkBuildup() {
+  printf("BUILDUP (red then blue, throbs 60%% deep), starting from green:\n");
+  const Look charge = { BUILDUP, RED_BLUE, 60, FIXED_COLORS };
+  const Look smooth = { BUILDUP, RED_BLUE, 0, FIXED_COLORS };
+  auto at = [](float charged) { return charged * CHARGE; };              // A point of the charge, as a phase
+  auto top = [](float k) { return (float)sqrt(k / THROBS); };          // The top of throb k
+  check(lookColor(charge, G, 0.0f, 0, 1) == G, "starts from the old color");
+  check(near(lookColor(charge, G, at(top(2)), 0, 1), R, 2), "charging: red at the top of a throb halfway through");
+  CRGB full = listColor(charge, G, top(2.5f), 0, 1), dimmed = full;
+  dimmed.nscale8(255 - 60 * 255 / 100);
+  check(near(lookColor(charge, G, at(top(2.5f)), 0, 1), dimmed, 2), "at the bottom of a throb: 60% darker");
+  check(near(lookColor(smooth, G, at(top(2.5f)), 0, 1), full, 1), "amount 0: no throbs, a smooth rise");
+
+  int firstHalf = 0, secondHalf = 0;
+  bool high = true;
+  for (int i = 0; i <= 4000; i++) {                                   // Count the dips: near full, then clearly darker
+    float charged = i / 4000.0f;
+    CRGB c = lookColor(charge, G, at(charged), 0, 1), plain = listColor(charge, G, charged, 0, 1);
+    float level = (float)(c.r + c.g + c.b) / (plain.r + plain.g + plain.b);
+    if (high && level < 0.7f) { if (charged < 0.5f) firstHalf++; else secondHalf++; high = false; }
+    if (level > 0.85f) high = true;
+  }
+  check(firstHalf + secondHalf == THROBS, "8 throbs while charging");
+  check(secondHalf > 2 * firstHalf, "faster and faster: most of them in the 2nd half");
+
+  check(lookColor(charge, G, CHARGE, 0, 1) == B && lookColor(charge, G, CHARGE + BURST * 0.9f, 0, 1) == B,
+        "the burst: the last color, at full");
+  CRGB fading = lookColor(charge, G, (CHARGE + BURST + 1.0f) / 2, 0, 1);
+  check(fading.r > 128 && fading.b < 128, "then fading back, quickly at first");
+  check(lookColor(charge, G, 1.0f, 0, 1) == R && endColor(charge, 0, 1) == R, "it ends on its first color");
+  check(arrival(smooth, 0.0f) == 0.0f && arrival(smooth, CHARGE / 2) == 1.0f, "it has taken over halfway through the charge");
+  check(drawLook(charge, charge, CHARGE, 0, 1, 0, 0, false) == B, "it doesn't flicker");
+
+  const Group ray(1, 1, charge, OFF, 1000, REPEAT);
+  check(drawGroup(ray, true, 0, 0, 0, 0, true) == K, "in a group, the 1st cycle starts from the off look");
+  check(drawGroup(ray, true, 1000, 0, 0, 0, true) == R && near(drawGroup(ray, true, 1999, 0, 0, 0, true), R, 2),
+        "and each later cycle starts and ends on the first color");
+}
+
+static void checkPause() {
+  printf("A pause between cycles (BUILDUP of 1000 ms, then 500 ms of pause):\n");
+  const Look charge = { BUILDUP, RED_BLUE, 60, FIXED_COLORS };
+  const Group plain(1, 1, charge, OFF, 1000, REPEAT), paused(1, 1, charge, OFF, 1000, pauseThenRepeat(500));
+  check(plain.pauseMs == 0 && Group(1, 1, charge, OFF, 1000, ONCE_HOLD).pauseMs == 0, "REPEAT and ONCE_HOLD: no pause");
+  bool firstSame = true, secondLater = true, thirdLater = true;
+  for (uint32_t ms = 0; ms < 1000; ms += 7) {
+    CRGB c = drawGroup(plain, true, ms, 0, 0, 0, true);
+    firstSame = firstSame && drawGroup(paused, true, ms, 0, 0, 0, true) == c;
+    CRGB again = drawGroup(plain, true, 1000 + ms, 0, 0, 0, true);
+    secondLater = secondLater && drawGroup(paused, true, 1500 + ms, 0, 0, 0, true) == again;
+    thirdLater = thirdLater && drawGroup(paused, true, 3000 + ms, 0, 0, 0, true) == again;
+  }
+  check(firstSame, "the 1st cycle is unchanged");
+  check(drawGroup(paused, true, 1000, 0, 0, 0, true) == R && drawGroup(paused, true, 1250, 0, 0, 0, true) == R &&
+        drawGroup(paused, true, 1499, 0, 0, 0, true) == R, "the pause rests on the look's end color");
+  check(secondLater, "the 2nd cycle plays as without a pause, 500 ms later");
+  check(thirdLater, "and the 3rd, 1000 ms later");
+  check(drawGroup(paused, true, 2999, 0, 0, 0, true) == R && !(drawGroup(paused, true, 2400, 0, 0, 0, true) == R),
+        "each cycle is followed by a pause");
+
+  const Look gradient = { GRADIENT, RED_BLUE, 0, FIXED_COLORS };
+  const Group fade(1, 1, gradient, OFF, 1000, pauseThenRepeat(2000));
+  check(drawGroup(fade, true, 1000, 0, 0, 0, true) == B && drawGroup(fade, true, 2999, 0, 0, 0, true) == B &&
+        drawGroup(fade, true, 3000, 0, 0, 0, true) == B &&
+        near(drawGroup(fade, true, 3500, 0, 0, 0, true), lookColor(gradient, B, 0.5f, 0, 1), 1),
+        "a gradient rests on its last color, then plays from it again");
+
+  const Group smooth(1, 1, charge, OFF, 1000, pauseThenRepeat(500), 0);
+  const Look noThrobs = { BUILDUP, RED_BLUE, 0, FIXED_COLORS };
+  check(smooth.amount == 0 && smooth.pauseMs == 500 &&
+        near(drawGroup(smooth, true, 1500 + 300, 0, 0, 0, true), lookColor(noThrobs, R, 0.3f, 0, 1), 1),
+        "with its own amount too");
+  const Group own = SCENES[1]->groups[0].get();
+  check(own.pauseMs == 0, "the Sanctuary's groups read back with no pause");
 }
 
 int main() {
@@ -479,6 +570,8 @@ int main() {
   checkPulses();
   checkFailing();
   checkLightning();
+  checkBuildup();
+  checkPause();
   checkGroupAmount();
   checkScenes();
 

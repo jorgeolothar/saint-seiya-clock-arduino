@@ -62,3 +62,5 @@ extern StubFastLED FastLED;
 // platforms/avr/clockless_avr.h and LEDS from FastLED.h.
 #define LOOP asm __volatile__("");   // As in FastLED, less its assembly
 #define LEDS FastLED
+// And a constant FastLED declares at global scope (fl/system/fastpin.h)
+const uint8_t NO_PIN = 255;

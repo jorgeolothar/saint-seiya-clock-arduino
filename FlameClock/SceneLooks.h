@@ -56,6 +56,12 @@ const Look FAULTY_LIGHT           = { FAILING, FAULTY_LIGHT_COLORS, 30, FIXED_CO
 const ColorStop LIGHTNING_COLORS[] = { { SNAP, ICE_WHITE }, { EARLY_FADE, STORM_BLUE } };
 const Look STORM_SKY              = { LIGHTNING, LIGHTNING_COLORS, 30, FIXED_COLORS };
 
+// A freeze ray: a dim teal that charges up to ice blue, throbbing faster
+// and faster, bursts in ice white, and fades back down. Its cycle ms is
+// how long one charge and burst take.
+const ColorStop FREEZE_RAY_COLORS[] = { { SMOOTH_FADE, DIM_TEAL }, { STEADY_FADE, ICE_BLUE }, { LATE_FADE, ICE_WHITE } };
+const Look FREEZE_RAY             = { BUILDUP, FREEZE_RAY_COLORS, 60, FIXED_COLORS };
+
 // Deep sea blue that drifts into teal and back. For Poseidon's temples.
 const ColorStop SEA_COLORS[]      = { { SMOOTH_FADE, DIM_TEAL }, { SMOOTH_FADE, SEA_BLUE } };
 const Look SEA                    = { GRADIENT, SEA_COLORS, 0, FIXED_COLORS };

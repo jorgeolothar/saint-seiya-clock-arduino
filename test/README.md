@@ -23,7 +23,7 @@ test/run.sh main~2     # compare with another commit, branch or tag
 
 `IDENTICAL` means the change didn't change a single LED color. `DIFFERENT` is expected when you change a look or how flames are drawn on purpose.
 
-**Checks.** Tests the parts that have nothing to compare with: color lists of other lengths, `SNAP` and `HOLD`, the power limit, and the scenes: which groups are on at which hour (`SPOTLIGHT`, `FILL`, 8 and 12 hour cycles, `ALL_GROUPS_ON`), where each group's LEDs are on the chain, and what `REPEAT`, `ONCE_HOLD` and `ONCE_OFF` do. The scene checks use a test scene of their own, so editing `Scenes.h` doesn't break them. All four scenes in `Scenes.h` are switched on for this, so they're all compiled.
+**Checks.** Tests the parts that have nothing to compare with: color lists of other lengths, `SNAP` and `HOLD`, the power limit, and the scenes: which groups are on at which hour (`SPOTLIGHT`, `FILL`, 8 and 12 hour cycles, `ALL_GROUPS_ON`), where each group's LEDs are on the chain, and what `REPEAT`, `pauseThenRepeat()`, `ONCE_HOLD` and `ONCE_OFF` do. The scene checks use a test scene of their own, so editing `Scenes.h` doesn't break them. All five scenes in `Scenes.h` are switched on for this, so they're all compiled.
 
 ## What they don't check
 

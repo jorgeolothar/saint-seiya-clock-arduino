@@ -168,10 +168,12 @@ With only one color, the LED fades into it and stays: `SOLID` is a one-color fla
 
 | Value | What it means |
 |---|---|
-| **Effect** | `FLAME` = flickers. `GRADIENT` = steady. `HEARTBEAT` = beats twice, then rests. `PULSES` = a burst of short pulses, then rests. `FAILING` = steady, but goes out or stutters now and then. `LIGHTNING` = rests, and strikes with quick flashes now and then. The last four are made for scenes: see [SCENES.md](SCENES.md#-heartbeat-looks) |
+| **Effect** | `FLAME` = flickers. `GRADIENT` = steady. `HEARTBEAT` = beats twice, then rests. `PULSES` = a burst of short pulses, then rests. `FAILING` = steady, but goes out or stutters now and then. `LIGHTNING` = rests, and strikes with quick flashes now and then. `BUILDUP` = charges up, throbbing faster and faster, then bursts. The last five are made for scenes: see [SCENES.md](SCENES.md#-heartbeat-looks) |
 | **Color list** | The name of the first line |
-| **Amount** | For `FLAME`, the flicker in %: `0` = steady, `100` = strongest. For `HEARTBEAT`, how strong the 2nd beat is, in %. For `PULSES`, how many pulses (1 to 8). For `FAILING`, how often it fails, in %. For `LIGHTNING`, how often it strikes, in %. `GRADIENT` ignores it |
+| **Amount** | For `FLAME`, the flicker in %: `0` = steady, `100` = strongest. For `HEARTBEAT`, how strong the 2nd beat is, in %. For `PULSES`, how many pulses (1 to 8). For `FAILING`, how often it fails, in %. For `LIGHTNING`, how often it strikes, in %. For `BUILDUP`, how deep the throbs are, in %. `GRADIENT` ignores it |
 | **Colors** | `FIXED_COLORS` = the colors as written. `RAINBOW_COLORS` = a rainbow across the LEDs: around a ring, or across a scene group's own LEDs |
+
+> 💡 **Tip:** to see every effect before picking one, switch on the [demo scene](SCENES.md#-the-demo): 7 LEDs on pin A3, one for each effect.
 
 **The fades:**
 
@@ -217,7 +219,7 @@ How the two flames on a ring work together depends on their trails. Some ideas f
 
 ## 🏛️ Scenes
 
-The sketch can also light scenes on extra pins: groups of LEDs, like temples, that light up hour by hour. They're optional and switched off, so the clock doesn't need them. See **[SCENES.md](SCENES.md)**.
+The sketch can also light scenes on extra pins: groups of LEDs, like temples, that light up hour by hour. They're optional and switched off, so the clock doesn't need them. See **[SCENES.md](SCENES.md)**, and start with the [demo](SCENES.md#-the-demo): one LED for each effect.
 
 ## ⚡ Power Limit
 

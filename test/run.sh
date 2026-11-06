@@ -50,7 +50,7 @@ fi
 echo
 echo "== Checks: the current sketch, with every scene switched on =="
 cp "$repo"/FlameClock/* "$work/scenes/FlameClock/"
-sed -i 's#^// \#define USE_\(SANCTUARY\|ASGARD\|POSEIDON\|HADES\)#\#define USE_\1#' "$work/scenes/FlameClock/Scenes.h"
+sed -i 's#^// \#define USE_\(DEMO\|SANCTUARY\|ASGARD\|POSEIDON\|HADES\)#\#define USE_\1#' "$work/scenes/FlameClock/Scenes.h"
 build checks.cpp "$work/scenes/FlameClock" "$work/checks"
 checks_ok=1
 "$work/checks" || checks_ok=0

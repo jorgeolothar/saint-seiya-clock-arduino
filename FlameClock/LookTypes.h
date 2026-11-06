@@ -31,6 +31,7 @@ struct ColorStop {
 };
 
 // ---- What a look does with its colors ----
+// To see them all, switch on the DEMO scene in Scenes.h: one LED each.
 enum Effect : uint8_t {
   GRADIENT,       // Fades through the colors, steady. The amount is not used.
                   // With a single color, this is a solid color.
@@ -47,9 +48,12 @@ enum Effect : uint8_t {
                   // out for a moment or stutters at random times, like a bad
                   // wire. A group's LEDs fail together. Amount = how often
                   // it fails, in %.
-  LIGHTNING       // Rests on the last color, and at random times strikes: 1 to
+  LIGHTNING,      // Rests on the last color, and at random times strikes: 1 to
                   // 4 quick flashes, each playing the color list. A group's
                   // LEDs strike together. Amount = how often it strikes, in %.
+  BUILDUP         // Charges up through the colors, throbbing faster and faster,
+                  // bursts on the last color, then fades back to the first.
+                  // Amount = how deep the throbs are, in %.
 };
 
 // ---- Where a look's colors come from ----
@@ -80,12 +84,13 @@ inline CRGB rainbowColor(uint8_t brightness, uint8_t paleness) {
 // The color list can be any length. Its colors share the cycle equally,
 // and the last one is where the look ends.
 struct Look {
-  Effect effect;              // GRADIENT, FLAME, HEARTBEAT, PULSES, FAILING or LIGHTNING
+  Effect effect;              // GRADIENT, FLAME, HEARTBEAT, PULSES, FAILING, LIGHTNING or BUILDUP
   const ColorStop *stops;     // The color list
   uint8_t stopCount;          // How many colors are in the list (counted for you)
   uint8_t amount;             // What it means depends on the effect (FLAME: flicker %,
                               // HEARTBEAT: strength of the 2nd beat %, PULSES: how many,
-                              // FAILING: how often it fails %, LIGHTNING: how often it strikes %)
+                              // FAILING: how often it fails %, LIGHTNING: how often it strikes %,
+                              // BUILDUP: how deep the throbs are %)
   ColorStyle colors;          // FIXED_COLORS or RAINBOW_COLORS
 
   template <size_t N>

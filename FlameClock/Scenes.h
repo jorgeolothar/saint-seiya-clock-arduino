@@ -5,8 +5,9 @@
 //  Each scene is a chain of LEDs on its own data pin, split into
 //  groups: a few LEDs that light up together, like a temple, part of a
 //  throne or a street lamp. A group lights up in its hour of the
-//  scene's cycle, and plays its look. All four scenes are switched off as the sketch
-//  comes: see SCENES.md, next to the README.
+//  scene's cycle, and plays its look. All the scenes are switched off as
+//  the sketch comes: see SCENES.md, next to the README. To see every
+//  effect first, switch on the DEMO.
 //
 //  Keep this file in the same folder as FlameClock.ino. The Arduino IDE
 //  shows it as a tab called Scenes.h.
@@ -35,6 +36,8 @@
 //                 look just fades in and holds its last color.
 //    repeat ..... after one cycle of the on look:
 //                   REPEAT ..... play it again, and again
+//                   pauseThenRepeat(6000) .. wait 6 seconds on its
+//                                end color, then play it again
 //                   ONCE_HOLD .. stay on its last color
 //                   ONCE_OFF ... turn to the off look
 //    amount ..... optional: the on look's amount for this group only,
@@ -75,6 +78,29 @@
 // Turn every group of every scene on, whatever the hour? Handy for
 // checking the wiring. true = yes, false = no (the normal setting)
 const bool ALL_GROUPS_ON = false;
+
+// ---------------------------------------------------------------------
+//  DEMO: one LED for each effect, always on. Wire 7 LEDs (a strip, or
+//  the first 7 of a ring) to A3 and switch it on to see them all.
+// ---------------------------------------------------------------------
+// #define USE_DEMO
+#define DEMO_PIN   A3
+#define DEMO_CHIP  WS2812B
+#define DEMO_ORDER GRB
+const PowerLimit DEMO_POWER = { 300, 20 };
+const Lighting DEMO_LIGHTING = SPOTLIGHT;
+const uint32_t DEMO_START = clockTime(0, 0, 0);
+
+constexpr Group DEMO[] = {
+//  hour    LEDs  on look       off look  cycle ms  repeat                   amount
+  { ALWAYS, 1,    SEA,          OFF,      5000,     REPEAT },                       // GRADIENT
+  { ALWAYS, 1,    FIRE,         OFF,      2000,     REPEAT },                       // FLAME
+  { ALWAYS, 1,    HEART,        OFF,      1000,     pauseThenRepeat(2000) },        // HEARTBEAT, every 3 s
+  { ALWAYS, 1,    BEACON,       OFF,      3000,     REPEAT },                       // PULSES
+  { ALWAYS, 1,    FAULTY_LIGHT, OFF,      0,        REPEAT },                       // FAILING
+  { ALWAYS, 1,    STORM_SKY,    OFF,      0,        REPEAT,                  60 },  // LIGHTNING, more often
+  { ALWAYS, 1,    FREEZE_RAY,   OFF,      4000,     pauseThenRepeat(3000) },        // BUILDUP, every 7 s
+};
 
 // ---------------------------------------------------------------------
 //  SANCTUARY: the 12 zodiac temples, one per hour, and Athena's temple,

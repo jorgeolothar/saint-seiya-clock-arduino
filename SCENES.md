@@ -1,15 +1,32 @@
 # 🏛️ Scenes
 
-Besides the clock rings, the Arduino can light up to four scenes. Each scene is one chain of LEDs on its own pin, split into **groups**: a few LEDs that light up together, like a temple, part of a throne or a street lamp. Each group lights up in its hour.
+Besides the clock rings, the Arduino can light up to five scenes. Each scene is one chain of LEDs on its own pin, split into **groups**: a few LEDs that light up together, like a temple, part of a throne or a street lamp. Each group lights up in its hour.
 
-The scenes are optional, and all four are switched off in the sketch as it comes. Switched off, they use no memory on the Arduino.
+The scenes are optional, and all five are switched off in the sketch as it comes. Switched off, they use no memory on the Arduino.
 
 | Scene | Groups | Cycle | Pin |
 |---|---|---|---|
+| **Demo** | 1 LED for each effect, always on | — | A3 |
 | **Sanctuary** | 12 zodiac temples, one per hour, and Athena's temple, always on | 12 hours, from midnight and from noon: Aries 12–1 o'clock … Pisces 11–12 | D10 |
 | **Asgard** | 7 temples, one per hour, then Odin's throne in hour 8 | 8 hours, 3 times a day | D11 |
 | **Poseidon** | 7 temples, one per hour, then Poseidon's throne in hour 8 | 8 hours, 3 times a day | D12 |
 | **Hades** | 7 temples, one per hour, then Hades' throne in hour 8 | 8 hours, 3 times a day | A0 |
+
+## 🎬 The demo
+
+The **Demo** scene shows every effect at once, one LED each, so you can see them before setting up a scene of your own. Wire 7 LEDs (a strip, or the first 7 LEDs of a ring) to **A3**, and switch on `USE_DEMO`:
+
+| LED | Effect | Look |
+|---|---|---|
+| 1 | `GRADIENT` | `SEA` |
+| 2 | `FLAME` | `FIRE` |
+| 3 | `HEARTBEAT` | `HEART`, with a pause: it beats every 3 seconds |
+| 4 | `PULSES` | `BEACON` |
+| 5 | `FAILING` | `FAULTY_LIGHT` |
+| 6 | `LIGHTNING` | `STORM_SKY`, with its own amount of 60, so it strikes more often |
+| 7 | `BUILDUP` | `FREEZE_RAY`, with a pause: it charges every 7 seconds |
+
+Its lines in **Scenes.h** are also an example of a group's own amount and of `pauseThenRepeat`.
 
 ## 🔛 Switching a scene on
 
@@ -37,7 +54,7 @@ Each group is one line in **Scenes.h**, in the order its LEDs are wired: the gro
 | **On look** | The look while it's on: any look from `SceneLooks.h` or `Flames.h` |
 | **Off look** | The look while it's off. `OFF` = dark, `CINDERS` = a dim flickering glow |
 | **Cycle ms** | One cycle of the on look, in thousandths of a second (`2000` = 2 seconds, up to `65000`). `0` = fade in and hold |
-| **Repeat** | What happens after one cycle: `REPEAT` = again and again, `ONCE_HOLD` = stay on the last color, `ONCE_OFF` = turn to the off look |
+| **Repeat** | What happens after one cycle: `REPEAT` = again and again, `pauseThenRepeat(6000)` = wait 6 seconds on the end color between cycles, `ONCE_HOLD` = stay on the last color, `ONCE_OFF` = turn to the off look |
 | **Amount** | Optional. The on look's amount for this group only: see below. Leave it out to use the look's own amount |
 
 When a group turns on, its look fades in from the off look. With `REPEAT`, each cycle starts where the last one ended, so a look whose colors go back and forth pulses smoothly.
@@ -59,7 +76,7 @@ This saves writing a new look for each amount, and each look you write takes a l
 
 | Setting | What it means |
 |---|---|
-| `..._PIN` | The Arduino pin the chain's DIN is wired to. A0 to A3 work as well as D2 to D13 |
+| `..._PIN` | The Arduino pin the chain's DIN is wired to. A0 to A3 work as well as D2 to D13. Each scene needs a pin of its own, not used by a ring or the button |
 | `..._CHIP` | The LED chip: `WS2812B`, or for 5mm LEDs often `PL9823` or `APA106` |
 | `..._ORDER` | `GRB`, or `RGB` if red and green look swapped |
 | `..._POWER` | The scene's power limit: `{ most milliamps, milliamps per color }`. See [Power limit](#-power-limit) |
@@ -72,7 +89,7 @@ The cycle should fit a day evenly (8 or 12 hours, for example). If it doesn't, i
 
 ## 🎨 The scene looks
 
-These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too.
+These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too. To see each effect before picking one, switch on the [demo](#-the-demo).
 
 | Look | What it is |
 |---|---|
@@ -85,6 +102,7 @@ These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too.
 | `BEACON` | A burst of 3 short white flashes, then dark. The cycle ms is how often the burst comes |
 | `FAULTY_LIGHT` | A cold white light that goes out for a moment or stutters now and then, like a bad wire |
 | `STORM_SKY` | A dim stormy blue sky, struck now and then by 1 to 4 quick white flashes |
+| `FREEZE_RAY` | A dim teal that charges up to ice blue, throbbing faster and faster, bursts in ice white, and fades back down |
 
 Scene looks are written the same way as flames: see [Making your own flame](README.md#️-making-your-own-flame) in the README.
 
@@ -172,6 +190,28 @@ Each flash takes 150 ms, and the next one follows 60 to 180 ms after it starts. 
 
 Like a failing light, lightning follows real time, so the cycle ms doesn't matter: use `0`. It doesn't flicker. `MODE_FREEZE` shows its resting color, and `MODE_COLOR_TEST` shows its first color.
 
+### 🔋 Buildup looks
+
+A look with the `BUILDUP` effect charges up through its color list, throbbing faster and faster, then bursts on its **last color** and fades back down to its **first color**, ready to charge again. The amount is how deep the throbs are, in %: `0` = a smooth rise, `100` = each throb goes dark.
+
+```cpp
+const ColorStop FREEZE_RAY_COLORS[] = { { SMOOTH_FADE, DIM_TEAL }, { STEADY_FADE, ICE_BLUE }, { LATE_FADE, ICE_WHITE } };
+const Look FREEZE_RAY               = { BUILDUP, FREEZE_RAY_COLORS, 60, FIXED_COLORS };
+```
+
+| Part of the cycle | What the LED does |
+|---|---|
+| 0 – 80% | Charges: plays the color list, throbbing 8 times, faster and faster |
+| 80 – 85% | The burst: the last color, at full |
+| 85 – 100% | Fades back down to the first color, quickly at first |
+
+The group's **cycle ms** is how long one charge, burst and fade back take: `4000` = 4 seconds. Use `REPEAT` to charge again at once, `pauseThenRepeat(...)` to rest on the first color between charges, or `ONCE_HOLD` for a single charge that settles on the first color. A buildup doesn't flicker.
+
+```cpp
+//  hour  LEDs  on look     off look  cycle ms  repeat
+  { 1,    4,    FREEZE_RAY, OFF,      4000,     pauseThenRepeat(6000) },   // Charges for 4 s, rests for 6 s
+```
+
 ## 🧪 Test modes
 
 The scenes follow the clock's `BEHAVIOR` setting in **PART 2** of `FlameClock.ino`:
@@ -196,6 +236,7 @@ const PowerLimit SANCTUARY_POWER = { 300, 20 };   // most milliamps, milliamps p
 
 | Connection | Pin |
 |---|---|
+| DIN — Demo | A3 |
 | DIN — Sanctuary | D10 |
 | DIN — Asgard | D11 |
 | DIN — Poseidon | D12 |
@@ -212,13 +253,15 @@ The Uno and Nano have 2 KB of memory. Each scene switched on takes some of it fo
 | Switched on | Memory used |
 |---|---|
 | 1 ring, no scenes | 487 bytes (23%) |
+| 1 ring and the demo | 673 bytes (32%) |
 | 1 ring and the Sanctuary | 660 bytes (32%) |
-| 3 rings and all four scenes | 1,181 bytes (57%) |
+| 3 rings and all five scenes | 1,343 bytes (65%) |
 
 If the clock resets by itself or the LEDs show garbage, memory may be running out: switch off a scene you don't need.
 
 ## 🩺 Troubleshooting
 
+- **The sketch doesn't compile: "... shares its pin":** two scenes, or a scene and a ring or the button, are set to the same pin. Only one of them would light, so give each its own pin.
 - **A scene stays dark:** check that its `#define USE_...` line has no slashes in front. Then set `ALL_GROUPS_ON = true` to rule out the hour.
 - **Red and green look swapped:** 5mm LEDs are often `RGB`. Change the scene's `..._ORDER`. A group showing `SOLID` should look amber, not green.
 - **Colors flicker or the chain shows random colors:** check the 100 nF capacitors, the 330 Ω resistor and that the scene's GND is joined to the Arduino's GND. Try `PL9823` or `APA106` as the scene's `..._CHIP`.
