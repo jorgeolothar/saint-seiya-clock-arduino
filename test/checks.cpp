@@ -168,6 +168,8 @@ static void checkScenes() {
   for (int e = GRADIENT; e <= BUILDUP; e++) eachOnce = eachOnce && shown[e] == 1;
   check(demoScene.groupCount == BUILDUP + 1 && allOn, "the demo: 1 LED for each effect, always on");
   check(eachOnce, "it shows every effect, once");
+  check(timesUsed(DEMO_PIN) == 1 && timesUsed(RING1_PIN) == 1 && timesUsed(UNUSED_PIN) == MAX_RINGS - NUM_CLOCKS,
+        "every pin in use has one job, and the unused ring pins are left out");
   const Scene &sanctuaryScene = *SCENES[1];
   const Group aries = sanctuaryScene.groups[0].get(), athena = sanctuaryScene.groups[12].get();
   check(sanctuaryScene.groupCount == 13 && sanctuaryScene.ledCount == 26 && sanctuaryScene.hours == 12,

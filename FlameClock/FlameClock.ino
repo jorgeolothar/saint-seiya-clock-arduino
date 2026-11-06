@@ -321,6 +321,57 @@ const Scene *const SCENES[] = {
 };
 const int NUM_SCENES = sizeof(SCENES) / sizeof(SCENES[0]) - 1;
 
+// Each pin can do only one job. With two chains on one pin, only one of
+// them would light, so the sketch doesn't compile if two share a pin.
+const uint8_t UNUSED_PIN = 255;    // A ring that isn't in CLOCKS
+constexpr uint8_t PINS_IN_USE[] = {
+  BUTTON_PIN,
+  RING1_PIN,
+  NUM_CLOCKS >= 2 ? RING2_PIN : UNUSED_PIN,
+  NUM_CLOCKS >= 3 ? RING3_PIN : UNUSED_PIN,
+  NUM_CLOCKS >= 4 ? RING4_PIN : UNUSED_PIN,
+#ifdef USE_RTC
+  A4, A5,           // The clock module's SDA and SCL
+#endif
+#ifdef USE_DEMO
+  DEMO_PIN,
+#endif
+#ifdef USE_SANCTUARY
+  SANCTUARY_PIN,
+#endif
+#ifdef USE_ASGARD
+  ASGARD_PIN,
+#endif
+#ifdef USE_POSEIDON
+  POSEIDON_PIN,
+#endif
+#ifdef USE_HADES
+  HADES_PIN,
+#endif
+};
+constexpr int timesUsed(uint8_t pin, size_t from = 0) {
+  return from == sizeof(PINS_IN_USE) ? 0 : (PINS_IN_USE[from] == pin) + timesUsed(pin, from + 1);
+}
+static_assert(timesUsed(RING1_PIN) == 1, "RING1_PIN (PART 3) shares its pin with the button, another ring or a scene");
+static_assert(NUM_CLOCKS < 2 || timesUsed(RING2_PIN) == 1, "RING2_PIN (PART 3) shares its pin with the button, another ring or a scene");
+static_assert(NUM_CLOCKS < 3 || timesUsed(RING3_PIN) == 1, "RING3_PIN (PART 3) shares its pin with the button, another ring or a scene");
+static_assert(NUM_CLOCKS < 4 || timesUsed(RING4_PIN) == 1, "RING4_PIN (PART 3) shares its pin with the button, another ring or a scene");
+#ifdef USE_DEMO
+static_assert(timesUsed(DEMO_PIN) == 1, "DEMO_PIN (Scenes.h) shares its pin with a ring, the button, the clock module or another scene");
+#endif
+#ifdef USE_SANCTUARY
+static_assert(timesUsed(SANCTUARY_PIN) == 1, "SANCTUARY_PIN (Scenes.h) shares its pin with a ring, the button, the clock module or another scene");
+#endif
+#ifdef USE_ASGARD
+static_assert(timesUsed(ASGARD_PIN) == 1, "ASGARD_PIN (Scenes.h) shares its pin with a ring, the button, the clock module or another scene");
+#endif
+#ifdef USE_POSEIDON
+static_assert(timesUsed(POSEIDON_PIN) == 1, "POSEIDON_PIN (Scenes.h) shares its pin with a ring, the button, the clock module or another scene");
+#endif
+#ifdef USE_HADES
+static_assert(timesUsed(HADES_PIN) == 1, "HADES_PIN (Scenes.h) shares its pin with a ring, the button, the clock module or another scene");
+#endif
+
 // The two flames each ring shows right now. They start as written in
 // PART 1, and the long press changes them.
 const Look *currentFlame[MAX_RINGS][2];

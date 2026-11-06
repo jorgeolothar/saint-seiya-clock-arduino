@@ -76,7 +76,7 @@ This saves writing a new look for each amount, and each look you write takes a l
 
 | Setting | What it means |
 |---|---|
-| `..._PIN` | The Arduino pin the chain's DIN is wired to. A0 to A3 work as well as D2 to D13. |
+| `..._PIN` | The Arduino pin the chain's DIN is wired to. A0 to A3 work as well as D2 to D13. Each scene needs a pin of its own, not used by a ring or the button |
 | `..._CHIP` | The LED chip: `WS2812B`, or for 5mm LEDs often `PL9823` or `APA106` |
 | `..._ORDER` | `GRB`, or `RGB` if red and green look swapped |
 | `..._POWER` | The scene's power limit: `{ most milliamps, milliamps per color }`. See [Power limit](#-power-limit) |
@@ -261,6 +261,7 @@ If the clock resets by itself or the LEDs show garbage, memory may be running ou
 
 ## 🩺 Troubleshooting
 
+- **The sketch doesn't compile: "... shares its pin":** two scenes, or a scene and a ring or the button, are set to the same pin. Only one of them would light, so give each its own pin.
 - **A scene stays dark:** check that its `#define USE_...` line has no slashes in front. Then set `ALL_GROUPS_ON = true` to rule out the hour.
 - **Red and green look swapped:** 5mm LEDs are often `RGB`. Change the scene's `..._ORDER`. A group showing `SOLID` should look amber, not green.
 - **Colors flicker or the chain shows random colors:** check the 100 nF capacitors, the 330 Ω resistor and that the scene's GND is joined to the Arduino's GND. Try `PL9823` or `APA106` as the scene's `..._CHIP`.
