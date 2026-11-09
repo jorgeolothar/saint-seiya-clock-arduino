@@ -618,6 +618,25 @@ static void checkFlow() {
         "the longest lag (65535 ms, 255%, 255 LEDs) doesn't overflow");
 }
 
+static void checkStrobe() {
+  printf("The STROBE look (200 ms a cycle):\n");
+  const Group strobe(1, 1, STROBE, OFF, 200, REPEAT);
+  bool flashes = true, dark = true;
+  int flashCount = 0;
+  bool wasOn = false;
+  for (uint32_t ms = 0; ms < 1000; ms++) {
+    CRGB c = drawGroup(strobe, true, ms, 0, 0, 0, true);
+    bool on = !(c == K);
+    uint32_t inCycle = ms % 200;
+    if (inCycle < 50) flashes = flashes && c == ICE_WHITE;
+    else dark = dark && c == K;
+    if (on && !wasOn) flashCount++;
+    wasOn = on;
+  }
+  check(flashes && dark, "cold white for the first quarter of the cycle, dark for the rest");
+  check(flashCount == 5, "5 flashes a second");
+}
+
 static void checkPause() {
   printf("A pause between cycles (BUILDUP of 1000 ms, then 500 ms of pause):\n");
   const Look charge = { BUILDUP, RED_BLUE, 60, FIXED_COLORS };
@@ -708,6 +727,7 @@ int main() {
   checkBuildup();
   checkExplosion();
   checkFlow();
+  checkStrobe();
   checkPause();
   checkGroupAmount();
   checkScenes();

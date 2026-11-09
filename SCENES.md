@@ -106,6 +106,7 @@ These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too. 
 | `STORM_SKY` | A dim stormy blue sky, struck now and then by 1 to 4 quick white flashes |
 | `FREEZE_RAY` | A dim teal that charges up to ice blue, throbbing faster and faster, bursts in ice white, and fades back down |
 | `FIREBALL` | A white-hot flash that cools through orange and red to smoldering cinders, crackling and flaring up as it cools |
+| `STROBE` | Quick flashes of cold white. The cycle ms is the rate: `200` = 5 flashes a second. The LEDs are updated every 30 ms, so below `120` some flashes get skipped, though that's hard to see at that speed |
 | `MOVING_RAINBOW` | A rainbow that travels along the group. Give it 6 LEDs or more |
 | `COOLANT` | Pulses of ice blue running through a dim teal tube |
 

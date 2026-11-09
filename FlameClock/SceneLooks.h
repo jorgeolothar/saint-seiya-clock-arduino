@@ -68,6 +68,13 @@ const Look FREEZE_RAY             = { BUILDUP, FREEZE_RAY_COLORS, 60, FIXED_COLO
 const ColorStop FIREBALL_COLORS[]  = { { SNAP, SPARK_WHITE }, { EARLY_FADE, ORANGE }, { STEADY_FADE, RED }, { SMOOTH_FADE, CINDER } };
 const Look FIREBALL               = { EXPLOSION, FIREBALL_COLORS, 60, FIXED_COLORS };
 
+// A strobe: quick flashes of cold white. Each color gets a quarter of
+// the cycle: white for one, dark for three. Its cycle ms is the rate:
+// 200 = 5 flashes a second. The LEDs are updated every 30 ms, so below
+// 120, some flashes get skipped (hard to see at that speed).
+const ColorStop STROBE_COLORS[]   = { { SNAP, ICE_WHITE }, { SNAP, BLACK }, { SNAP, BLACK }, { SNAP, BLACK } };
+const Look STROBE                 = { GRADIENT, STROBE_COLORS, 0, FIXED_COLORS };
+
 // A rainbow that moves along the group. Give it 6 LEDs or more.
 const ColorStop MOVING_RAINBOW_COLORS[] = {
   { STEADY_FADE, SPECTRUM_RED },  { STEADY_FADE, SPECTRUM_ORANGE }, { STEADY_FADE, SPECTRUM_YELLOW },
