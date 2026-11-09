@@ -744,9 +744,14 @@ void setup() {
 void loop() {
   handleButton();
 
+  // A new frame every FRAME_MS, however long drawing it takes. If drawing
+  // takes longer than that, the next frame starts right away.
+  static unsigned long frameStart = 0;
+  unsigned long now = millis();
+  if (now - frameStart < FRAME_MS) return;         // Not time yet
+  frameStart = (now - frameStart < 2 * FRAME_MS) ? frameStart + FRAME_MS : now;
+
   if (systemState) {
     updateDisplay();                               // Redraw every frame so flames keep flickering
   }
-
-  delay(FRAME_MS);
 }

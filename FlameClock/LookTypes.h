@@ -51,9 +51,17 @@ enum Effect : uint8_t {
   LIGHTNING,      // Rests on the last color, and at random times strikes: 1 to
                   // 4 quick flashes, each playing the color list. A group's
                   // LEDs strike together. Amount = how often it strikes, in %.
-  BUILDUP         // Charges up through the colors, throbbing faster and faster,
+  BUILDUP,        // Charges up through the colors, throbbing faster and faster,
                   // bursts on the last color, then fades back to the first.
                   // Amount = how deep the throbs are, in %.
+  EXPLOSION,      // Flashes on the first color at once, then cools through the
+                  // rest, quickly at first. Amount = how much the embers
+                  // crackle and flare back up as they cool, in %.
+  FLOW            // Fades through the colors, steady, like GRADIENT, but in a
+                  // scene group each LED is a little behind the one before,
+                  // so the colors travel from the group's first LED to its
+                  // last. Amount = how far behind the last LED is, in % of
+                  // the cycle: 100 = one full wave along the group.
 };
 
 // ---- Where a look's colors come from ----
@@ -84,13 +92,15 @@ inline CRGB rainbowColor(uint8_t brightness, uint8_t paleness) {
 // The color list can be any length. Its colors share the cycle equally,
 // and the last one is where the look ends.
 struct Look {
-  Effect effect;              // GRADIENT, FLAME, HEARTBEAT, PULSES, FAILING, LIGHTNING or BUILDUP
+  Effect effect;              // GRADIENT, FLAME, HEARTBEAT, PULSES, FAILING, LIGHTNING, BUILDUP,
+                              // EXPLOSION or FLOW
   const ColorStop *stops;     // The color list
   uint8_t stopCount;          // How many colors are in the list (counted for you)
   uint8_t amount;             // What it means depends on the effect (FLAME: flicker %,
                               // HEARTBEAT: strength of the 2nd beat %, PULSES: how many,
                               // FAILING: how often it fails %, LIGHTNING: how often it strikes %,
-                              // BUILDUP: how deep the throbs are %)
+                              // BUILDUP: how deep the throbs are %, EXPLOSION: ember crackle %,
+                              // FLOW: how far behind the last LED is, in % of the cycle)
   ColorStyle colors;          // FIXED_COLORS or RAINBOW_COLORS
 
   template <size_t N>

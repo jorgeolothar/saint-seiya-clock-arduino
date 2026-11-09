@@ -46,9 +46,14 @@ inline CRGB drawGroup(const Group &group, bool on, uint32_t onForMs,
   const Look *before = group.off;        // The first cycle fades in from the off look
   float phase = 1.0f;                    // 1.0 = the look's last color
 
-  if (!on) {
-    look = group.off;                    // Off: the off look's last color
+  uint32_t lag = 0;                      // A flowing look reaches each LED a bit after the one before
+  if (onLook.effect == FLOW && group.cycleMs > 0)
+    lag = (uint32_t)group.cycleMs * onLook.amount * led / (100UL * group.ledCount);
+
+  if (!on || onForMs < lag) {
+    look = group.off;                    // Off, or not reached yet: the off look's last color
   } else if (group.cycleMs > 0) {
+    onForMs -= lag;
     uint32_t cycles = onForMs / group.cycleMs;
     if (cycles == 0) {                   // The first cycle
       phase = (float)onForMs / (float)group.cycleMs;

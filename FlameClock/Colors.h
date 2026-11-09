@@ -39,6 +39,18 @@ const CRGB VIOLET      = CRGB(150, 40, 255);
 const CRGB DEEP_PURPLE = CRGB(40, 0, 70);
 const CRGB BLACK       = CRGB(0, 0, 0);        // off. As a last color: no trail
 
+// The 8 hues of FastLED's rainbow, for a rainbow written color by color.
+// The mixed ones are dimmed, so on LEDs every hue looks as bright as
+// the others, and fading between neighbors looks even.
+const CRGB SPECTRUM_RED    = CRGB(255, 0, 0);
+const CRGB SPECTRUM_ORANGE = CRGB(171, 85, 0);
+const CRGB SPECTRUM_YELLOW = CRGB(171, 170, 0);
+const CRGB SPECTRUM_GREEN  = CRGB(0, 255, 0);
+const CRGB SPECTRUM_AQUA   = CRGB(0, 171, 85);
+const CRGB SPECTRUM_BLUE   = CRGB(0, 0, 255);
+const CRGB SPECTRUM_PURPLE = CRGB(85, 0, 171);
+const CRGB SPECTRUM_PINK   = CRGB(170, 0, 85);
+
 // Colors for RAINBOW_COLORS looks, written as:
 //
 //   rainbowColor(brightness %, paleness %)

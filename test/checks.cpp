@@ -32,8 +32,8 @@ const CRGB K = CRGB(0, 0, 0);
 // ---- Scenes: a test scene of their own, so editing Scenes.h does not break these ----
 const ColorStop RED_BLUE[] = { { STEADY_FADE, R }, { STEADY_FADE, B } };
 const Look ON_LOOK = { GRADIENT, RED_BLUE, 0, FIXED_COLORS };
-const ColorStop GREEN[] = { { SNAP, G } };
-const Look GREEN_OFF = { GRADIENT, GREEN, 0, FIXED_COLORS };
+const ColorStop JUST_GREEN[] = { { SNAP, G } };
+const Look GREEN_OFF = { GRADIENT, JUST_GREEN, 0, FIXED_COLORS };
 
 constexpr Group TEST_GROUPS[] = {
 //  hour    LEDs  on       off        cycle  repeat         LEDs on the chain
@@ -158,15 +158,16 @@ static void checkScenes() {
   check(NUM_SCENES == 5, "all five scenes compile (run.sh switches them all on)");
   const Scene &demoScene = *SCENES[0];
   bool allOn = true;
-  int shown[BUILDUP + 1] = {};
+  int shown[FLOW + 1] = {};
   for (uint8_t i = 0; i < demoScene.groupCount; i++) {
     const Group group = demoScene.groups[i].get();
-    allOn = allOn && group.hour == ALWAYS && group.ledCount == 1;
+    allOn = allOn && group.hour == ALWAYS && (group.on->effect == FLOW ? group.ledCount > 1 : group.ledCount == 1);
     shown[group.on->effect]++;
   }
   bool eachOnce = true;
-  for (int e = GRADIENT; e <= BUILDUP; e++) eachOnce = eachOnce && shown[e] == 1;
-  check(demoScene.groupCount == BUILDUP + 1 && allOn, "the demo: 1 LED for each effect, always on");
+  for (int e = GRADIENT; e <= FLOW; e++) eachOnce = eachOnce && shown[e] == 1;
+  check(demoScene.groupCount == FLOW + 1 && allOn, "the demo: 1 LED for each effect (a few for FLOW), always on");
+  check(demoScene.ledCount == 12, "12 LEDs: a 12-LED ring shows it all");
   check(eachOnce, "it shows every effect, once");
   check(timesUsed(DEMO_PIN) == 1 && timesUsed(RING1_PIN) == 1 && timesUsed(UNUSED_PIN) == MAX_RINGS - NUM_CLOCKS,
         "every pin in use has one job, and the unused ring pins are left out");
@@ -483,6 +484,186 @@ static void checkBuildup() {
         "and each later cycle starts and ends on the first color");
 }
 
+static void checkExplosion() {
+  printf("EXPLOSION (red, then green, then blue, crackle 100%%):\n");
+  const ColorStop RGB_LIST[] = { { STEADY_FADE, R }, { STEADY_FADE, G }, { STEADY_FADE, B } };
+  const Look boom = { EXPLOSION, RGB_LIST, 100, FIXED_COLORS };
+  const Look calm = { EXPLOSION, RGB_LIST, 0, FIXED_COLORS };
+  const ColorStop RED_ONLY[] = { { STEADY_FADE, R } };
+  const Look single = { EXPLOSION, RED_ONLY, 100, FIXED_COLORS };
+  auto cooling = [](float part) { return BLAST_FLASH + (1.0f - BLAST_FLASH) * part; };   // A point of the cooling, as a phase
+  check(lookColor(boom, G, 0.0f, 0, 1) == R && arrival(boom, 0.0f) == 1.0f,
+        "flashes on its first color at once, whatever its fade");
+  check(lookColor(boom, G, BLAST_FLASH * 0.9f, 0, 1) == R, "the flash lasts the start of the cycle");
+  CRGB quarter = lookColor(boom, G, cooling(0.25f), 0, 1);
+  check(quarter.g > 200 && quarter.b == 0, "a quarter into the cooling, nearly at its 2nd color: quickly at first");
+  check(lookColor(boom, G, 1.0f, 0, 1) == B && endColor(boom, 0, 1) == B, "it ends on its last color");
+  check(lookColor(single, G, 0.5f, 0, 1) == R, "with one color, it stays on it");
+  const ColorStop SNAPPING[] = { { STEADY_FADE, R }, { SNAP, G } };
+  const Look snapping = { EXPLOSION, SNAPPING, 0, FIXED_COLORS };
+  check(lookColor(snapping, K, BLAST_FLASH * 0.5f, 0, 1) == R && lookColor(snapping, K, cooling(0.01f), 0, 1) == G,
+        "a 2nd color that SNAPs comes right after the flash, not during it");
+
+  check(lookFlicker(boom, BLAST_FLASH * 0.5f) == 0 && lookFlicker(boom, cooling(0.5f)) == 50 &&
+        lookFlicker(boom, 1.0f) == 100, "it crackles more and more as it cools: 0, 50, 100%");
+  bool flashSteady = true, calmSteady = true;
+  for (uint32_t ms = 0; ms < 20000; ms += 7) {
+    fakeMillis = ms;
+    flashSteady = flashSteady && drawLook(boom, boom, BLAST_FLASH * 0.5f, 0, 1, 0, 0, false) == R;
+    calmSteady = calmSteady && drawLook(calm, calm, cooling(0.5f), 0, 1, 0, 0, false) == lookColor(calm, K, cooling(0.5f), 0, 1);
+  }
+  check(flashSteady, "the flash doesn't flicker or flare up");
+  check(calmSteady, "amount 0: a smooth fade, no crackle");
+
+  int windows = 0, flared = 0, flaredOften = 0;
+  bool inRange = true, reachesFull = false, flashOrColdFlares = false, spotsDiffer = false, calmFlares = false;
+  const Look sometimes = { EXPLOSION, RGB_LIST, 30, FIXED_COLORS };
+  for (uint32_t w = 0; w < 2000; w++) {
+    bool any = false, anyOften = false;
+    for (uint32_t ms = w * FLARE_WINDOW_MS; ms < (w + 1) * FLARE_WINDOW_MS; ms += 5) {
+      fakeMillis = ms;
+      float f = emberFlare(boom, 0.5f, 7);
+      inRange = inRange && f >= 0.0f && f <= 1.0f;
+      reachesFull = reachesFull || f > 0.95f;
+      anyOften = anyOften || f > 0.0f;
+      any = any || emberFlare(sometimes, 0.5f, 7) > 0.0f;
+      flashOrColdFlares = flashOrColdFlares || emberFlare(boom, BLAST_FLASH * 0.5f, 7) > 0.0f || emberFlare(boom, 1.0f, 7) > 0.0f;
+      spotsDiffer = spotsDiffer || emberFlare(boom, 0.5f, 7) != emberFlare(boom, 0.5f, 300);
+      calmFlares = calmFlares || emberFlare(calm, 0.5f, 7) > 0.0f;
+    }
+    windows++;
+    if (any) flared++;
+    if (anyOften) flaredOften++;
+  }
+  check(flaredOften == windows, "100%: a flare-up every window (0.5 s)");
+  check(flared * 100 / windows >= 25 && flared * 100 / windows <= 35, "30%: a flare-up in about 30% of the windows");
+  check(inRange && reachesFull, "a flare-up rises to full and goes back down");
+  check(!flashOrColdFlares && !calmFlares, "no flare-ups during the flash, once cold, or at amount 0");
+  check(spotsDiffer, "different groups flare up at different times");
+  check(near(explosionColor(boom, 0.9999f, 1.0f, 0, 1), fadeBetween(G, B, 0.4f), 2),
+        "a full flare-up takes it 30% of the way back toward the flash");
+  check(drawLook(boom, boom, cooling(0.5f), 0, 1, 0, 0, true) == lookColor(boom, K, cooling(0.5f), 0, 1),
+        "steady: no crackle or flare-ups");
+  bool drawn = true;
+  int flaring = 0;
+  for (uint32_t ms = 0; ms < 20000; ms += 7) {
+    fakeMillis = ms;
+    float flare = emberFlare(boom, cooling(0.7f), 300);
+    CRGB expected = explosionColor(boom, cooling(0.7f), flare, 0, 1);
+    expected.nscale8(flickerScale(5, lookFlicker(boom, cooling(0.7f))));
+    drawn = drawn && drawLook(boom, boom, cooling(0.7f), 0, 1, 5, 300, false) == expected;
+    if (flare > 0.5f) flaring++;
+  }
+  check(drawn && flaring > 100, "drawn: the group's flare-ups, then each LED's own crackle");
+
+  const Group blast(1, 1, boom, OFF, 1000, REPEAT), once(1, 1, calm, OFF, 1000, ONCE_HOLD);
+  check(drawGroup(blast, true, 0, 0, 0, 0, true) == R && drawGroup(blast, true, 1000, 0, 0, 0, true) == R,
+        "in a group, each cycle starts with the flash");
+  bool holds = true;
+  for (uint32_t ms = 0; ms < 5000; ms += 7) {
+    fakeMillis = ms;
+    holds = holds && drawGroup(once, true, 3000, 0, 0, 0, false) == B;
+  }
+  check(holds, "ONCE_HOLD: stays on its last color");
+  fakeMillis = 0;
+}
+
+static void checkFlow() {
+  printf("FLOW (red then blue, 1000 ms a cycle, 4 LEDs):\n");
+  const Look flowing = { FLOW, RED_BLUE, 100, FIXED_COLORS };
+  const Look gradient = { GRADIENT, RED_BLUE, 0, FIXED_COLORS };
+  const Group wave(1, 4, flowing, OFF, 1000, REPEAT), two(1, 4, flowing, OFF, 1000, REPEAT, 200),
+              together(1, 4, flowing, OFF, 1000, REPEAT, 0), half(1, 4, flowing, OFF, 1000, REPEAT, 50);
+  check(lookColor(flowing, G, 0.3f, 0, 1) == lookColor(gradient, G, 0.3f, 0, 1) && lookFlicker(flowing) == 0,
+        "each LED plays the colors like GRADIENT, without flicker");
+  bool behind = true, behindTwice = true, same = true, behindHalf = true;
+  for (uint32_t t = 0; t < 3000; t += 7) {
+    for (uint8_t led = 1; led < 4; led++) {
+      behind = behind && drawGroup(wave, true, t + 250 * led, led, 0, 0, true) == drawGroup(wave, true, t, 0, 0, 0, true);
+      behindTwice = behindTwice && drawGroup(two, true, t + 500 * led, led, 0, 0, true) == drawGroup(two, true, t, 0, 0, 0, true);
+      behindHalf = behindHalf && drawGroup(half, true, t + 125 * led, led, 0, 0, true) == drawGroup(half, true, t, 0, 0, 0, true);
+      same = same && drawGroup(together, true, t, led, 0, 0, true) == drawGroup(together, true, t, 0, 0, 0, true);
+    }
+  }
+  check(behind, "amount 100: each LED plays what the one before played 250 ms earlier");
+  check(behindTwice, "amount 200: 500 ms earlier, two waves along the group");
+  check(behindHalf, "the group's own amount, 50: 125 ms earlier");
+  check(same, "amount 0: all the LEDs together");
+  const Look heavy = { GRADIENT, RED_BLUE, 100, FIXED_COLORS };
+  const Group still(1, 4, heavy, OFF, 1000, REPEAT);
+  bool stillTogether = true;
+  for (uint32_t t = 0; t < 3000; t += 7)
+    for (uint8_t led = 1; led < 4; led++)
+      stillTogether = stillTogether && drawGroup(still, true, t, led, 0, 0, true) == drawGroup(still, true, t, 0, 0, 0, true);
+  check(stillTogether, "other effects, even with amount 100: the group's LEDs stay together");
+  CRGB mid = drawGroup(wave, true, 1500, 0, 0, 0, true);
+  check(!(mid == drawGroup(wave, true, 1500, 2, 0, 0, true)), "so the LEDs show different colors at once");
+
+  check(drawGroup(wave, true, 100, 0, 0, 0, true) == lookColor(flowing, K, 0.1f, 0, 1) &&
+        drawGroup(wave, true, 100, 1, 0, 0, true) == K && drawGroup(wave, true, 499, 2, 0, 0, true) == K &&
+        !(drawGroup(wave, true, 600, 2, 0, 0, true) == K),
+        "turning on, it spreads from the 1st LED: the others wait on the off look");
+  const Group shot(1, 4, flowing, OFF, 1000, ONCE_OFF), resting(1, 4, flowing, OFF, 1000, pauseThenRepeat(1000));
+  check(drawGroup(shot, true, 1100, 0, 0, 0, true) == K && !(drawGroup(shot, true, 1100, 3, 0, 0, true) == K) &&
+        drawGroup(shot, true, 1800, 3, 0, 0, true) == K, "ONCE_OFF: one pulse runs along the group, then it's dark");
+  bool restsBehind = true;
+  for (uint32_t t = 0; t < 6000; t += 7)
+    restsBehind = restsBehind && drawGroup(resting, true, t + 750, 3, 0, 0, true) == drawGroup(resting, true, t, 0, 0, 0, true);
+  check(restsBehind, "with a pause, each LED rests in turn, 250 ms after the one before");
+
+  const Look widest = { FLOW, RED_BLUE, 255, FIXED_COLORS };
+  const Group longest(1, 255, widest, OFF, 65535, REPEAT);
+  const uint32_t lag = (uint32_t)((uint64_t)65535 * 255 * 254 / (100 * 255));   // 166,458 ms
+  check(drawGroup(longest, true, lag - 1, 254, 0, 0, true) == K && !(drawGroup(longest, true, lag + 1000, 254, 0, 0, true) == K),
+        "the longest lag (65535 ms, 255%, 255 LEDs) doesn't overflow");
+}
+
+static void checkStrobe() {
+  printf("The STROBE look (200 ms a cycle):\n");
+  const Group strobe(1, 1, STROBE, OFF, 200, REPEAT);
+  bool flashes = true, dark = true;
+  int flashCount = 0;
+  bool wasOn = false;
+  for (uint32_t ms = 0; ms < 1000; ms++) {
+    CRGB c = drawGroup(strobe, true, ms, 0, 0, 0, true);
+    bool on = !(c == K);
+    uint32_t inCycle = ms % 200;
+    if (inCycle < 50) flashes = flashes && c == ICE_WHITE;
+    else dark = dark && c == K;
+    if (on && !wasOn) flashCount++;
+    wasOn = on;
+  }
+  check(flashes && dark, "cold white for the first quarter of the cycle, dark for the rest");
+  check(flashCount == 5, "5 flashes a second");
+}
+
+// Runs the sketch's loop() for 'ms' milliseconds. Each pass takes 1 ms,
+// and a pass that draws a frame takes 'drawMs' more. Returns how many
+// frames were sent.
+static unsigned long framesIn(uint32_t ms, uint32_t drawMs) {
+  unsigned long before = FastLED.shows;
+  uint32_t end = fakeMillis + ms;
+  while (fakeMillis < end) {
+    unsigned long shown = FastLED.shows;
+    loop();
+    fakeMillis += 1 + ((FastLED.shows > shown) ? drawMs : 0);
+  }
+  return FastLED.shows - before;
+}
+
+static void checkFrames() {
+  printf("Frames (FRAME_MS = %lu):\n", (unsigned long)FRAME_MS);
+  fakeMillis = 100000;
+  auto about = [](unsigned long frames, unsigned long expected) { return frames + 1 >= expected && frames <= expected + 1; };
+  framesIn(1000, 0);                                       // Settle into the rhythm
+  check(about(framesIn(3000, 0), 3000 / FRAME_MS), "a frame every FRAME_MS");
+  check(about(framesIn(3000, 10), 3000 / FRAME_MS), "the same when each frame takes 10 ms to draw");
+  unsigned long slow = framesIn(3000, 50);                 // 1 + 50 ms a frame
+  check(about(slow, 3000 / 51), "drawing slower than FRAME_MS: frames back to back, no catching up");
+  check(about(framesIn(3000, 0), 3000 / FRAME_MS), "and back to a frame every FRAME_MS after");
+  fakeMillis = 0;
+}
+
 static void checkPause() {
   printf("A pause between cycles (BUILDUP of 1000 ms, then 500 ms of pause):\n");
   const Look charge = { BUILDUP, RED_BLUE, 60, FIXED_COLORS };
@@ -571,6 +752,10 @@ int main() {
   checkFailing();
   checkLightning();
   checkBuildup();
+  checkExplosion();
+  checkFlow();
+  checkStrobe();
+  checkFrames();
   checkPause();
   checkGroupAmount();
   checkScenes();

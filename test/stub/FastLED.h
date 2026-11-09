@@ -51,7 +51,8 @@ struct StubFastLED {
   template <typename CHIP, int PIN, EOrder ORDER> void addLeds(CRGB *, int) {}
   void setBrightness(uint8_t b) { brightness = b; }
   uint8_t getBrightness() { return brightness; }
-  void show() {}
+  unsigned long shows = 0;       // How many times show() was called: the frames sent
+  void show() { shows++; }
   void clear() {}
 };
 extern StubFastLED FastLED;
