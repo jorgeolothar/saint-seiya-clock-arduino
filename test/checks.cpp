@@ -32,8 +32,8 @@ const CRGB K = CRGB(0, 0, 0);
 // ---- Scenes: a test scene of their own, so editing Scenes.h does not break these ----
 const ColorStop RED_BLUE[] = { { STEADY_FADE, R }, { STEADY_FADE, B } };
 const Look ON_LOOK = { GRADIENT, RED_BLUE, 0, FIXED_COLORS };
-const ColorStop GREEN[] = { { SNAP, G } };
-const Look GREEN_OFF = { GRADIENT, GREEN, 0, FIXED_COLORS };
+const ColorStop JUST_GREEN[] = { { SNAP, G } };
+const Look GREEN_OFF = { GRADIENT, JUST_GREEN, 0, FIXED_COLORS };
 
 constexpr Group TEST_GROUPS[] = {
 //  hour    LEDs  on       off        cycle  repeat         LEDs on the chain
@@ -158,15 +158,16 @@ static void checkScenes() {
   check(NUM_SCENES == 5, "all five scenes compile (run.sh switches them all on)");
   const Scene &demoScene = *SCENES[0];
   bool allOn = true;
-  int shown[EXPLOSION + 1] = {};
+  int shown[FLOW + 1] = {};
   for (uint8_t i = 0; i < demoScene.groupCount; i++) {
     const Group group = demoScene.groups[i].get();
-    allOn = allOn && group.hour == ALWAYS && group.ledCount == 1;
+    allOn = allOn && group.hour == ALWAYS && (group.on->effect == FLOW ? group.ledCount > 1 : group.ledCount == 1);
     shown[group.on->effect]++;
   }
   bool eachOnce = true;
-  for (int e = GRADIENT; e <= EXPLOSION; e++) eachOnce = eachOnce && shown[e] == 1;
-  check(demoScene.groupCount == EXPLOSION + 1 && allOn, "the demo: 1 LED for each effect, always on");
+  for (int e = GRADIENT; e <= FLOW; e++) eachOnce = eachOnce && shown[e] == 1;
+  check(demoScene.groupCount == FLOW + 1 && allOn, "the demo: 1 LED for each effect (a few for FLOW), always on");
+  check(demoScene.ledCount == 12, "12 LEDs: a 12-LED ring shows it all");
   check(eachOnce, "it shows every effect, once");
   check(timesUsed(DEMO_PIN) == 1 && timesUsed(RING1_PIN) == 1 && timesUsed(UNUSED_PIN) == MAX_RINGS - NUM_CLOCKS,
         "every pin in use has one job, and the unused ring pins are left out");
@@ -567,6 +568,56 @@ static void checkExplosion() {
   fakeMillis = 0;
 }
 
+static void checkFlow() {
+  printf("FLOW (red then blue, 1000 ms a cycle, 4 LEDs):\n");
+  const Look flowing = { FLOW, RED_BLUE, 100, FIXED_COLORS };
+  const Look gradient = { GRADIENT, RED_BLUE, 0, FIXED_COLORS };
+  const Group wave(1, 4, flowing, OFF, 1000, REPEAT), two(1, 4, flowing, OFF, 1000, REPEAT, 200),
+              together(1, 4, flowing, OFF, 1000, REPEAT, 0), half(1, 4, flowing, OFF, 1000, REPEAT, 50);
+  check(lookColor(flowing, G, 0.3f, 0, 1) == lookColor(gradient, G, 0.3f, 0, 1) && lookFlicker(flowing) == 0,
+        "each LED plays the colors like GRADIENT, without flicker");
+  bool behind = true, behindTwice = true, same = true, behindHalf = true;
+  for (uint32_t t = 0; t < 3000; t += 7) {
+    for (uint8_t led = 1; led < 4; led++) {
+      behind = behind && drawGroup(wave, true, t + 250 * led, led, 0, 0, true) == drawGroup(wave, true, t, 0, 0, 0, true);
+      behindTwice = behindTwice && drawGroup(two, true, t + 500 * led, led, 0, 0, true) == drawGroup(two, true, t, 0, 0, 0, true);
+      behindHalf = behindHalf && drawGroup(half, true, t + 125 * led, led, 0, 0, true) == drawGroup(half, true, t, 0, 0, 0, true);
+      same = same && drawGroup(together, true, t, led, 0, 0, true) == drawGroup(together, true, t, 0, 0, 0, true);
+    }
+  }
+  check(behind, "amount 100: each LED plays what the one before played 250 ms earlier");
+  check(behindTwice, "amount 200: 500 ms earlier, two waves along the group");
+  check(behindHalf, "the group's own amount, 50: 125 ms earlier");
+  check(same, "amount 0: all the LEDs together");
+  const Look heavy = { GRADIENT, RED_BLUE, 100, FIXED_COLORS };
+  const Group still(1, 4, heavy, OFF, 1000, REPEAT);
+  bool stillTogether = true;
+  for (uint32_t t = 0; t < 3000; t += 7)
+    for (uint8_t led = 1; led < 4; led++)
+      stillTogether = stillTogether && drawGroup(still, true, t, led, 0, 0, true) == drawGroup(still, true, t, 0, 0, 0, true);
+  check(stillTogether, "other effects, even with amount 100: the group's LEDs stay together");
+  CRGB mid = drawGroup(wave, true, 1500, 0, 0, 0, true);
+  check(!(mid == drawGroup(wave, true, 1500, 2, 0, 0, true)), "so the LEDs show different colors at once");
+
+  check(drawGroup(wave, true, 100, 0, 0, 0, true) == lookColor(flowing, K, 0.1f, 0, 1) &&
+        drawGroup(wave, true, 100, 1, 0, 0, true) == K && drawGroup(wave, true, 499, 2, 0, 0, true) == K &&
+        !(drawGroup(wave, true, 600, 2, 0, 0, true) == K),
+        "turning on, it spreads from the 1st LED: the others wait on the off look");
+  const Group shot(1, 4, flowing, OFF, 1000, ONCE_OFF), resting(1, 4, flowing, OFF, 1000, pauseThenRepeat(1000));
+  check(drawGroup(shot, true, 1100, 0, 0, 0, true) == K && !(drawGroup(shot, true, 1100, 3, 0, 0, true) == K) &&
+        drawGroup(shot, true, 1800, 3, 0, 0, true) == K, "ONCE_OFF: one pulse runs along the group, then it's dark");
+  bool restsBehind = true;
+  for (uint32_t t = 0; t < 6000; t += 7)
+    restsBehind = restsBehind && drawGroup(resting, true, t + 750, 3, 0, 0, true) == drawGroup(resting, true, t, 0, 0, 0, true);
+  check(restsBehind, "with a pause, each LED rests in turn, 250 ms after the one before");
+
+  const Look widest = { FLOW, RED_BLUE, 255, FIXED_COLORS };
+  const Group longest(1, 255, widest, OFF, 65535, REPEAT);
+  const uint32_t lag = (uint32_t)((uint64_t)65535 * 255 * 254 / (100 * 255));   // 166,458 ms
+  check(drawGroup(longest, true, lag - 1, 254, 0, 0, true) == K && !(drawGroup(longest, true, lag + 1000, 254, 0, 0, true) == K),
+        "the longest lag (65535 ms, 255%, 255 LEDs) doesn't overflow");
+}
+
 static void checkPause() {
   printf("A pause between cycles (BUILDUP of 1000 ms, then 500 ms of pause):\n");
   const Look charge = { BUILDUP, RED_BLUE, 60, FIXED_COLORS };
@@ -656,6 +707,7 @@ int main() {
   checkLightning();
   checkBuildup();
   checkExplosion();
+  checkFlow();
   checkPause();
   checkGroupAmount();
   checkScenes();

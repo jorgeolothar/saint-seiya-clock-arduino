@@ -68,6 +68,18 @@ const Look FREEZE_RAY             = { BUILDUP, FREEZE_RAY_COLORS, 60, FIXED_COLO
 const ColorStop FIREBALL_COLORS[]  = { { SNAP, SPARK_WHITE }, { EARLY_FADE, ORANGE }, { STEADY_FADE, RED }, { SMOOTH_FADE, CINDER } };
 const Look FIREBALL               = { EXPLOSION, FIREBALL_COLORS, 60, FIXED_COLORS };
 
+// A rainbow that moves along the group. Give it 6 LEDs or more.
+const ColorStop MOVING_RAINBOW_COLORS[] = {
+  { STEADY_FADE, SPECTRUM_RED },  { STEADY_FADE, SPECTRUM_ORANGE }, { STEADY_FADE, SPECTRUM_YELLOW },
+  { STEADY_FADE, SPECTRUM_GREEN }, { STEADY_FADE, SPECTRUM_AQUA },  { STEADY_FADE, SPECTRUM_BLUE },
+  { STEADY_FADE, SPECTRUM_PURPLE }, { STEADY_FADE, SPECTRUM_PINK } };
+const Look MOVING_RAINBOW         = { FLOW, MOVING_RAINBOW_COLORS, 100, FIXED_COLORS };
+
+// Coolant: pulses of ice blue running through a dim teal tube. Its
+// cycle ms is how long a pulse takes to run along the group.
+const ColorStop COOLANT_COLORS[]  = { { SMOOTH_FADE, ICE_BLUE }, { SMOOTH_FADE, DIM_TEAL }, { HOLD, DIM_TEAL }, { HOLD, DIM_TEAL } };
+const Look COOLANT                = { FLOW, COOLANT_COLORS, 100, FIXED_COLORS };
+
 // Deep sea blue that drifts into teal and back. For Poseidon's temples.
 const ColorStop SEA_COLORS[]      = { { SMOOTH_FADE, DIM_TEAL }, { SMOOTH_FADE, SEA_BLUE } };
 const Look SEA                    = { GRADIENT, SEA_COLORS, 0, FIXED_COLORS };

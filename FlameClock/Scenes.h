@@ -80,8 +80,8 @@
 const bool ALL_GROUPS_ON = false;
 
 // ---------------------------------------------------------------------
-//  DEMO: one LED for each effect, always on. Wire 8 LEDs (a strip, or
-//  the first 8 of a ring) to A3 and switch it on to see them all.
+//  DEMO: one LED for each effect, and 4 for FLOW, always on: 12 LEDs.
+//  Wire a 12-LED ring or strip to A3 and switch it on to see them all.
 // ---------------------------------------------------------------------
 // #define USE_DEMO
 #define DEMO_PIN   A3
@@ -101,6 +101,7 @@ constexpr Group DEMO[] = {
   { ALWAYS, 1,    STORM_SKY,    OFF,      0,        REPEAT,                  60 },  // LIGHTNING, more often
   { ALWAYS, 1,    FREEZE_RAY,   OFF,      4000,     pauseThenRepeat(3000) },        // BUILDUP, every 7 s
   { ALWAYS, 1,    FIREBALL,     OFF,      3000,     pauseThenRepeat(3000) },        // EXPLOSION, every 6 s
+  { ALWAYS, 4,    MOVING_RAINBOW, OFF,    3000,     REPEAT },                       // FLOW, along 4 LEDs
 };
 
 // ---------------------------------------------------------------------

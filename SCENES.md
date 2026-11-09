@@ -14,7 +14,7 @@ The scenes are optional, and all five are switched off in the sketch as it comes
 
 ## 🎬 The demo
 
-The **Demo** scene shows every effect at once, one LED each, so you can see them before setting up a scene of your own. Wire 8 LEDs (a strip, or the first 8 LEDs of a ring) to **A3**, and switch on `USE_DEMO`:
+The **Demo** scene shows every effect at once, so you can see them before setting up a scene of your own. Wire a 12-LED ring or strip to **A3**, and switch on `USE_DEMO`:
 
 | LED | Effect | Look |
 |---|---|---|
@@ -26,6 +26,7 @@ The **Demo** scene shows every effect at once, one LED each, so you can see them
 | 6 | `LIGHTNING` | `STORM_SKY`, with its own amount of 60, so it strikes more often |
 | 7 | `BUILDUP` | `FREEZE_RAY`, with a pause: it charges every 7 seconds |
 | 8 | `EXPLOSION` | `FIREBALL`, with a pause: it goes off every 6 seconds |
+| 9 – 12 | `FLOW` | `MOVING_RAINBOW`, traveling along 4 LEDs |
 
 Its lines in **Scenes.h** are also an example of a group's own amount and of `pauseThenRepeat`.
 
@@ -105,6 +106,8 @@ These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too. 
 | `STORM_SKY` | A dim stormy blue sky, struck now and then by 1 to 4 quick white flashes |
 | `FREEZE_RAY` | A dim teal that charges up to ice blue, throbbing faster and faster, bursts in ice white, and fades back down |
 | `FIREBALL` | A white-hot flash that cools through orange and red to smoldering cinders, crackling and flaring up as it cools |
+| `MOVING_RAINBOW` | A rainbow that travels along the group. Give it 6 LEDs or more |
+| `COOLANT` | Pulses of ice blue running through a dim teal tube |
 
 Scene looks are written the same way as flames: see [Making your own flame](README.md#️-making-your-own-flame) in the README.
 
@@ -238,6 +241,33 @@ The group's **cycle ms** is how long it takes from the flash to cold: `3000` = 3
   { 2,    2,    FIREBALL, OFF,      3000,     pauseThenRepeat(5000) },   // Goes off every 8 s
 ```
 
+### 🌊 Flowing looks
+
+A look with the `FLOW` effect plays its color list like `GRADIENT`, but each LED of the group is a little behind the one before, so the colors travel along the group, from its first LED to its last. Give it a few LEDs in a row: a 1-LED group just fades.
+
+```cpp
+const ColorStop COOLANT_COLORS[] = { { SMOOTH_FADE, ICE_BLUE }, { SMOOTH_FADE, DIM_TEAL }, { HOLD, DIM_TEAL }, { HOLD, DIM_TEAL } };
+const Look COOLANT               = { FLOW, COOLANT_COLORS, 100, FIXED_COLORS };
+```
+
+The amount is how far behind the group's last LED is, in % of the cycle:
+
+| Amount | What it looks like |
+|---|---|
+| `100` | One full wave along the group. On a ring, the colors join up all the way around |
+| `200` | Two waves |
+| `50` | Half a wave: the group shows half the color list at a time |
+| `0` | All the LEDs together, like `GRADIENT` |
+
+The group's **cycle ms** is how long the colors take to travel one wave along it: `3000` = 3 seconds. When the group turns on, the colors spread from its first LED; the others wait on the off look until the flow reaches them. With `pauseThenRepeat(...)` or `ONCE_OFF`, each LED rests or goes dark in turn, so a single pulse can run along a tube:
+
+```cpp
+//  hour  LEDs  on look  off look  cycle ms  repeat
+  { 1,    6,    COOLANT, OFF,      2000,     pauseThenRepeat(3000) },   // A pulse along the tube, every few seconds
+```
+
+`MOVING_RAINBOW` is a flow through the 8 `SPECTRUM_...` colors in `Colors.h`: FastLED's rainbow, with the mixed hues dimmed so every hue looks as bright as the others. On a clock ring, a flowing look fades like `GRADIENT`: the colors only travel in a scene group.
+
 ## 🧪 Test modes
 
 The scenes follow the clock's `BEHAVIOR` setting in **PART 2** of `FlameClock.ino`:
@@ -279,9 +309,9 @@ The Uno and Nano have 2 KB of memory. Each scene switched on takes some of it fo
 | Switched on | Memory used |
 |---|---|
 | 1 ring, no scenes | 487 bytes (23%) |
-| 1 ring and the demo | 698 bytes (34%) |
+| 1 ring and the demo | 748 bytes (36%) |
 | 1 ring and the Sanctuary | 660 bytes (32%) |
-| 3 rings and all five scenes | 1,368 bytes (66%) |
+| 3 rings and all five scenes | 1,418 bytes (69%) |
 
 If the clock resets by itself or the LEDs show garbage, memory may be running out: switch off a scene you don't need.
 
