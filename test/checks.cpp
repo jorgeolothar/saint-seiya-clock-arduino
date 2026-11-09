@@ -637,6 +637,33 @@ static void checkStrobe() {
   check(flashCount == 5, "5 flashes a second");
 }
 
+// Runs the sketch's loop() for 'ms' milliseconds. Each pass takes 1 ms,
+// and a pass that draws a frame takes 'drawMs' more. Returns how many
+// frames were sent.
+static unsigned long framesIn(uint32_t ms, uint32_t drawMs) {
+  unsigned long before = FastLED.shows;
+  uint32_t end = fakeMillis + ms;
+  while (fakeMillis < end) {
+    unsigned long shown = FastLED.shows;
+    loop();
+    fakeMillis += 1 + ((FastLED.shows > shown) ? drawMs : 0);
+  }
+  return FastLED.shows - before;
+}
+
+static void checkFrames() {
+  printf("Frames (FRAME_MS = %lu):\n", (unsigned long)FRAME_MS);
+  fakeMillis = 100000;
+  auto about = [](unsigned long frames, unsigned long expected) { return frames + 1 >= expected && frames <= expected + 1; };
+  framesIn(1000, 0);                                       // Settle into the rhythm
+  check(about(framesIn(3000, 0), 3000 / FRAME_MS), "a frame every FRAME_MS");
+  check(about(framesIn(3000, 10), 3000 / FRAME_MS), "the same when each frame takes 10 ms to draw");
+  unsigned long slow = framesIn(3000, 50);                 // 1 + 50 ms a frame
+  check(about(slow, 3000 / 51), "drawing slower than FRAME_MS: frames back to back, no catching up");
+  check(about(framesIn(3000, 0), 3000 / FRAME_MS), "and back to a frame every FRAME_MS after");
+  fakeMillis = 0;
+}
+
 static void checkPause() {
   printf("A pause between cycles (BUILDUP of 1000 ms, then 500 ms of pause):\n");
   const Look charge = { BUILDUP, RED_BLUE, 60, FIXED_COLORS };
@@ -728,6 +755,7 @@ int main() {
   checkExplosion();
   checkFlow();
   checkStrobe();
+  checkFrames();
   checkPause();
   checkGroupAmount();
   checkScenes();

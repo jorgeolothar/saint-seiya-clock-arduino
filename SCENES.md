@@ -309,10 +309,10 @@ The Uno and Nano have 2 KB of memory. Each scene switched on takes some of it fo
 
 | Switched on | Memory used |
 |---|---|
-| 1 ring, no scenes | 487 bytes (23%) |
-| 1 ring and the demo | 748 bytes (36%) |
-| 1 ring and the Sanctuary | 660 bytes (32%) |
-| 3 rings and all five scenes | 1,418 bytes (69%) |
+| 1 ring, no scenes | 491 bytes (23%) |
+| 1 ring and the demo | 752 bytes (36%) |
+| 1 ring and the Sanctuary | 664 bytes (32%) |
+| 3 rings and all five scenes | 1,422 bytes (69%) |
 
 If the clock resets by itself or the LEDs show garbage, memory may be running out: switch off a scene you don't need.
 
