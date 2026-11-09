@@ -52,7 +52,8 @@ const ColorStop FAULTY_LIGHT_COLORS[] = { { SNAP, ICE_WHITE } };
 const Look FAULTY_LIGHT           = { FAILING, FAULTY_LIGHT_COLORS, 30, FIXED_COLORS };
 
 // Lightning: a dim stormy blue sky, struck now and then by 1 to 4 quick
-// white flashes. Its cycle ms doesn't matter: use 0.
+// white flashes. With a single sky color, its cycle ms doesn't matter:
+// use 0.
 const ColorStop LIGHTNING_COLORS[] = { { SNAP, ICE_WHITE }, { EARLY_FADE, STORM_BLUE } };
 const Look STORM_SKY              = { LIGHTNING, LIGHTNING_COLORS, 30, FIXED_COLORS };
 
@@ -67,6 +68,12 @@ const Look FREEZE_RAY             = { BUILDUP, FREEZE_RAY_COLORS, 60, FIXED_COLO
 // is how long it takes to cool.
 const ColorStop FIREBALL_COLORS[]  = { { SNAP, SPARK_WHITE }, { EARLY_FADE, ORANGE }, { STEADY_FADE, RED }, { SMOOTH_FADE, CINDER } };
 const Look FIREBALL               = { EXPLOSION, FIREBALL_COLORS, 60, FIXED_COLORS };
+
+// A thunderstorm: dark clouds drifting along the group, struck now and
+// then by 1 to 4 quick white flashes. Its cycle ms is how long the
+// clouds take to drift along the group: give it a few LEDs in a row.
+const ColorStop THUNDERSTORM_COLORS[] = { { SNAP, ICE_WHITE }, { SMOOTH_FADE, STORM_BLUE }, { SMOOTH_FADE, CLOUD_GRAY } };
+const Look THUNDERSTORM           = { LIGHTNING, THUNDERSTORM_COLORS, 30, FIXED_COLORS };
 
 // A strobe: quick flashes of cold white. Each color gets a quarter of
 // the cycle: white for one, dark for three. Its cycle ms is the rate:

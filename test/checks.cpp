@@ -313,9 +313,9 @@ static void checkFailing() {
 // has (each starts on the first color, or brighter than the moment
 // before), how many ms it is off its resting color, and whether the 1st
 // flash starts at full strength
-struct StrikeSeen { int flashes, msLit, firstLit, lastLit; bool fullFirst, weakerLater, overRest; };
+struct StrikeSeen { int flashes, msLit, firstLit, lastLit; bool fullFirst, weakerLater, overRest, someWeaker; };
 static StrikeSeen watchStrike(const Look &look, uint32_t window, uint16_t spot) {
-  StrikeSeen seen = { 0, 0, -1, -1, false, true, true };
+  StrikeSeen seen = { 0, 0, -1, -1, false, true, true, false };
   CRGB rest = endColor(look, 0, 1), before = rest;
   for (uint16_t t = 0; t < STRIKE_WINDOW_MS; t++) {
     fakeMillis = window * STRIKE_WINDOW_MS + t;
@@ -327,7 +327,10 @@ static StrikeSeen watchStrike(const Look &look, uint32_t window, uint16_t spot) 
     }
     if (c.r > before.r) {                                // A flash starts
       if (seen.flashes == 0) seen.fullFirst = (c == firstColor(look, 0, 1));
-      else seen.weakerLater = seen.weakerLater && c.r >= 255 * FLASH_WEAKEST_PERCENT / 100 - 1;
+      else {
+        seen.weakerLater = seen.weakerLater && c.r >= 255 * FLASH_WEAKEST_PERCENT / 100 - 1;
+        seen.someWeaker = seen.someWeaker || c.r < 250;
+      }
       seen.flashes++;
     }
     seen.overRest = seen.overRest && c.b >= rest.b && c.r >= rest.r;
@@ -342,7 +345,7 @@ static void checkLightning() {
   const Look never = { LIGHTNING, WHITE_ON_BLUE, 0, FIXED_COLORS };
   const int windows = 3000;
   const Look rarely = { LIGHTNING, WHITE_ON_BLUE, 1, FIXED_COLORS };
-  bool every = true, fit = true, fullFirst = true, weaker = true, overRest = true, quiet = true, toEnd = true;
+  bool every = true, fit = true, fullFirst = true, weaker = true, overRest = true, quiet = true, toEnd = true, anyWeaker = false;
   int counts[MOST_FLASHES + 2] = { 0 }, struck = 0, rare = 0, lit = 0, apart = 0, oneFlash = -1, oneStart = 0;
   for (int w = 0; w < windows; w++) {
     StrikeSeen a = watchStrike(STRIKING, w, 7);
@@ -352,6 +355,7 @@ static void checkLightning() {
     if (a.flashes == 1 && oneFlash < 0) { oneFlash = w; oneStart = a.firstLit; }
     fullFirst = fullFirst && a.fullFirst;
     weaker = weaker && a.weakerLater;
+    anyWeaker = anyWeaker || a.someWeaker;
     overRest = overRest && a.overRest;
     counts[a.flashes > MOST_FLASHES ? MOST_FLASHES + 1 : a.flashes]++;
     lit += a.msLit;
@@ -371,9 +375,9 @@ static void checkLightning() {
   CRGB early = drawLook(STRIKING, STRIKING, 1.0f, 0, 1, 7, 7, false);
   fakeMillis += FLASH_MS / 2;
   CRGB late = drawLook(STRIKING, STRIKING, 1.0f, 0, 1, 7, 7, false);
-  check(early == CRGB(255, 255, 255) && near(late, CRGB(127, 127, 255), 4),
-        "a flash plays the color list: white, then fading into blue");
-  check(weaker, "later flashes are at least FLASH_WEAKEST_PERCENT strong");
+  check(early == CRGB(255, 255, 255) && near(late, fadeBetween(CRGB(255, 255, 255), B, 0.75f), 4),
+        "a flash: white, then fading back into blue, quickly at first");
+  check(weaker && anyWeaker, "later flashes are weaker, but at least FLASH_WEAKEST_PERCENT strong");
   check(overRest, "flashes only brighten the resting color");
   check(lit * 100 / (windows * STRIKE_WINDOW_MS) < 25, "amount 100: resting most of the time");
   printf("        amount 30: a strike in %d%% of windows; groups 97 apart differ in %d%%\n",
@@ -388,9 +392,10 @@ static void checkLightning() {
     steadyRest = steadyRest && drawLook(STRIKING, STRIKING, 1.0f, 0, 1, 7, 7, true) == B;
   }
   check(steadyRest, "steady (MODE_FREEZE): rests on the last color");
-  const ColorStop FADING_IN[] = { { STEADY_FADE, R }, { STEADY_FADE, B } };
-  const Look slowStart = { LIGHTNING, FADING_IN, 100, FIXED_COLORS };
-  check(lookColor(STRIKING, G, 0.0f, 0, 1) == B && arrival(slowStart, 0.0f) == 1.0f, "it takes over at once");
+  check(drawGroup(Group(1, 1, STRIKING, OFF, 0, REPEAT), true, 0, 0, 0, 0, true) == B,
+        "with cycle 0, its sky takes over at once");
+  check(lookColor(STRIKING, G, 0.5f, 0, 1) == fadeBetween(G, B, 0.5f) && arrival(STRIKING, 0.5f) == 0.5f,
+        "with a cycle, its sky fades in like GRADIENT");
   check(lookFlicker(STRIKING) == 0, "it doesn't flicker");
 
   bool together = true, flashed = false;
@@ -618,6 +623,54 @@ static void checkFlow() {
         "the longest lag (65535 ms, 255%, 255 LEDs) doesn't overflow");
 }
 
+static void checkClouds() {
+  printf("LIGHTNING over clouds (flash red, sky green then blue, strikes 100%%):\n");
+  const ColorStop STORM_LIST[] = { { SNAP, R }, { STEADY_FADE, G }, { STEADY_FADE, B } };
+  const Look storm = { LIGHTNING, STORM_LIST, 100, FIXED_COLORS };
+  const Look still = { LIGHTNING, STORM_LIST, 0, FIXED_COLORS };
+  check(lookColor(storm, K, 0.0f, 0, 1) == K && lookColor(storm, K, 0.5f, 0, 1) == G && lookColor(storm, K, 1.0f, 0, 1) == B,
+        "the clouds: from the old color into green, then blue");
+  check(firstColor(storm, 0, 1) == R && endColor(storm, 0, 1) == B, "the flash is its first color, and it ends on its last");
+  check(arrival(storm, 0.25f) == 0.5f && arrival(storm, 0.5f) == 1.0f, "its clouds take over during their first color");
+  const Group sky(1, 1, storm, OFF, 1000, REPEAT);
+  check(drawGroup(sky, true, 1000, 0, 0, 0, true) == B && drawGroup(sky, true, 1500, 0, 0, 0, true) == G,
+        "with REPEAT, the clouds go round: blue, green, blue");
+
+  const Group drifting(1, 4, storm, OFF, 1000, REPEAT), calm(1, 4, still, OFF, 1000, REPEAT);
+  bool drifts = true;
+  for (uint32_t t = 0; t < 3000; t += 7)
+    for (uint8_t led = 1; led < 4; led++)
+      drifts = drifts && drawGroup(drifting, true, t + 250 * led, led, 0, 0, true) == drawGroup(drifting, true, t, 0, 0, 0, true) &&
+               drawGroup(calm, true, t + 250 * led, led, 0, 0, true) == drawGroup(calm, true, t, 0, 0, 0, true);
+  check(drifts, "the clouds drift one wave along the group, whatever the amount");
+
+  bool fullFlash = false, shapeRight = true, quiet = true, frozen = true, together = true, apart = false;
+  int flashing = 0;
+  const Group lit(ALWAYS, 4, storm, OFF, 0, REPEAT);
+  for (uint32_t ms = 0; ms < 60000; ms += 3) {
+    fakeMillis = ms;
+    CRGB c = drawLook(storm, storm, 1.0f, 0, 1, 0, 7, false);
+    float progress = 0, strength = 0;
+    if (flashingNow(storm.amount, 7, progress, strength)) {
+      flashing++;
+      CRGB full = (progress < 0.5f) ? R : fadeBetween(R, B, fadeAmount(EARLY_FADE, progress * 2.0f - 1.0f));
+      shapeRight = shapeRight && c == ((strength >= 1.0f) ? full : fadeBetween(B, full, strength));
+      fullFlash = fullFlash || c == R;
+    } else {
+      shapeRight = shapeRight && c == B;
+    }
+    quiet = quiet && drawLook(still, still, 1.0f, 0, 1, 0, 7, false) == B;
+    frozen = frozen && drawLook(storm, storm, 1.0f, 0, 1, 0, 7, true) == B;
+    together = together && drawGroup(lit, true, 0, 0, 0, 7, false) == drawGroup(lit, true, 0, 3, 3, 7, false);
+    apart = apart || !(drawGroup(lit, true, 0, 0, 0, 7, false) == drawGroup(lit, true, 0, 0, 0, 300, false));
+  }
+  check(flashing > 1000 && fullFlash, "it strikes: the 1st flash on the full flash color");
+  check(shapeRight, "each flash: into the flash color, then back to the clouds; later ones weaker");
+  check(quiet && frozen, "no strikes at amount 0, or steady");
+  check(together && apart, "a group's LEDs strike together; different groups at different times");
+  fakeMillis = 0;
+}
+
 static void checkStrobe() {
   printf("The STROBE look (200 ms a cycle):\n");
   const Group strobe(1, 1, STROBE, OFF, 200, REPEAT);
@@ -754,6 +807,7 @@ int main() {
   checkBuildup();
   checkExplosion();
   checkFlow();
+  checkClouds();
   checkStrobe();
   checkFrames();
   checkPause();

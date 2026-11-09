@@ -48,9 +48,11 @@ enum Effect : uint8_t {
                   // out for a moment or stutters at random times, like a bad
                   // wire. A group's LEDs fail together. Amount = how often
                   // it fails, in %.
-  LIGHTNING,      // Rests on the last color, and at random times strikes: 1 to
-                  // 4 quick flashes, each playing the color list. A group's
-                  // LEDs strike together. Amount = how often it strikes, in %.
+  LIGHTNING,      // A sky, struck at random times by 1 to 4 quick flashes. The
+                  // first color is the flash; the others are the sky. With
+                  // more than one sky color, they drift along a scene group
+                  // like clouds, one wave along it per cycle. A group's LEDs
+                  // strike together. Amount = how often it strikes, in %.
   BUILDUP,        // Charges up through the colors, throbbing faster and faster,
                   // bursts on the last color, then fades back to the first.
                   // Amount = how deep the throbs are, in %.
