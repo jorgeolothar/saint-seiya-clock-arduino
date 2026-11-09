@@ -62,6 +62,12 @@ const Look STORM_SKY              = { LIGHTNING, LIGHTNING_COLORS, 30, FIXED_COL
 const ColorStop FREEZE_RAY_COLORS[] = { { SMOOTH_FADE, DIM_TEAL }, { STEADY_FADE, ICE_BLUE }, { LATE_FADE, ICE_WHITE } };
 const Look FREEZE_RAY             = { BUILDUP, FREEZE_RAY_COLORS, 60, FIXED_COLORS };
 
+// A fireball: a white-hot flash that cools through orange and red to
+// smoldering cinders, crackling and flaring up as it cools. Its cycle ms
+// is how long it takes to cool.
+const ColorStop FIREBALL_COLORS[]  = { { SNAP, SPARK_WHITE }, { EARLY_FADE, ORANGE }, { STEADY_FADE, RED }, { SMOOTH_FADE, CINDER } };
+const Look FIREBALL               = { EXPLOSION, FIREBALL_COLORS, 60, FIXED_COLORS };
+
 // Deep sea blue that drifts into teal and back. For Poseidon's temples.
 const ColorStop SEA_COLORS[]      = { { SMOOTH_FADE, DIM_TEAL }, { SMOOTH_FADE, SEA_BLUE } };
 const Look SEA                    = { GRADIENT, SEA_COLORS, 0, FIXED_COLORS };

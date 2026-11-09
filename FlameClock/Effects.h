@@ -105,6 +105,20 @@ static_assert(CHARGE_PERCENT >= 1 && CHARGE_PERCENT + BURST_PERCENT < 100,
 const float CHARGE = CHARGE_PERCENT / 100.0f;
 const float BURST = BURST_PERCENT / 100.0f;
 
+// ---- EXPLOSION timing ----
+// The flash takes the start of the cycle, and the rest is the cooling.
+// While it cools, time is cut into windows of FLARE_WINDOW_MS. Each
+// window, each group of LEDs has a chance (the look's amount, in %) of
+// one flare-up: for FLARE_MS, its embers go back toward the flash.
+const uint8_t BLAST_FLASH_PERCENT = 5;          // The flash, in % of the cycle
+const uint16_t FLARE_WINDOW_MS = 500;           // At 100%, a flare-up every 0.5 s
+const uint8_t FLARE_MS = 200;                   // How long a flare-up takes
+const uint8_t FLARE_BACK_PERCENT = 30;          // How far back toward the flash, in % of the cooling
+static_assert(BLAST_FLASH_PERCENT < 100, "EXPLOSION: the flash must leave time to cool");
+static_assert(FLARE_MS < FLARE_WINDOW_MS, "EXPLOSION: a flare-up must fit in its window");
+static_assert(FLARE_BACK_PERCENT <= 100, "EXPLOSION: FLARE_BACK_PERCENT goes up to 100");
+const float BLAST_FLASH = BLAST_FLASH_PERCENT / 100.0f;
+
 // How many pulses a PULSES look has: its amount, from 1 to MOST_PULSES
 inline uint8_t pulseCount(const Look &look) {
   return (look.amount < 1) ? 1 : (look.amount > MOST_PULSES) ? MOST_PULSES : look.amount;
@@ -113,7 +127,7 @@ inline uint8_t pulseCount(const Look &look) {
 // How far a look has taken over from the LED's old color at 'phase':
 // 0.0 = still the old color, 1.0 = past its first color
 inline float arrival(const Look &look, float phase) {
-  if (look.effect == LIGHTNING) return 1.0f;                  // It takes over at once
+  if (look.effect == LIGHTNING || look.effect == EXPLOSION) return 1.0f;   // It takes over at once
   float first = (look.effect == HEARTBEAT) ? BEAT_LENGTH     // It takes over during
               : (look.effect == PULSES)    ? PULSE_LENGTH    // its 1st beat or pulse,
               : (look.effect == BUILDUP)   ? CHARGE          // or while charging
@@ -184,6 +198,27 @@ inline CRGB buildupColor(const Look &look, CRGB from, float phase, uint8_t led, 
   return color;
 }
 
+// How far an explosion has cooled at 'phase': 0 = still the flash,
+// 1 = cold
+inline float cooledAt(float phase) {
+  if (phase >= 1.0f) return 1.0f;
+  return (phase < BLAST_FLASH) ? 0.0f : (phase - BLAST_FLASH) / (1.0f - BLAST_FLASH);
+}
+
+// An explosion's color at 'phase': a flash on its first color, at once,
+// then the rest of the color list as it cools, most of the change early.
+// 'flare' (0 to 1) takes it back toward the flash, for a flare-up.
+inline CRGB explosionColor(const Look &look, float phase, float flare, uint8_t led, uint8_t ledCount) {
+  CRGB flash = firstColor(look, led, ledCount);
+  if (phase < BLAST_FLASH || look.stopCount < 2) return flash;  // The flash
+  float cooled = fadeAmount(EARLY_FADE, cooledAt(phase));       // Cooling, quickly at first
+  cooled -= cooled * flare * FLARE_BACK_PERCENT / 100.0f;
+  Look cooling = look;                                          // The rest of the color list
+  cooling.stops++;
+  cooling.stopCount--;
+  return listColor(cooling, flash, cooled, led, ledCount);
+}
+
 // A look's color at 'phase', before flicker. 'from' is the LED's color
 // before the look started: the look fades from it into its first color.
 // Lightning rests on its last color here: its strikes are drawn by
@@ -193,11 +228,14 @@ inline CRGB lookColor(const Look &look, CRGB from, float phase, uint8_t led, uin
   if (look.effect == HEARTBEAT) return heartbeatColor(look, from, phase, led, ledCount);
   if (look.effect == PULSES) return pulsesColor(look, from, phase, led, ledCount);
   if (look.effect == BUILDUP) return buildupColor(look, from, phase, led, ledCount);
+  if (look.effect == EXPLOSION) return explosionColor(look, phase, 0.0f, led, ledCount);
   return listColor(look, from, phase, led, ledCount);
 }
 
-// How much a look flickers, in %. Only flames flicker.
-inline uint8_t lookFlicker(const Look &look) {
+// How much a look flickers at 'phase', in %. Flames flicker, and an
+// explosion crackles more and more as it cools.
+inline uint8_t lookFlicker(const Look &look, float phase = 1.0f) {
+  if (look.effect == EXPLOSION) return (uint8_t)(look.amount * cooledAt(phase) + 0.5f);
   return (look.effect == FLAME) ? look.amount : 0;
 }
 
@@ -303,6 +341,23 @@ inline CRGB lightningColor(const Look &look, uint16_t spot, uint8_t led, uint8_t
   return fadeBetween(rest, full, strength / 100.0f);
 }
 
+// How much an explosion's embers flare up right now, from 0 to 1: at
+// random times while it cools, more often the higher its amount. 'spot'
+// picks the group of LEDs that flare up together.
+inline float emberFlare(const Look &look, float phase, uint16_t spot) {
+  if (look.amount == 0 || phase < BLAST_FLASH || phase >= 1.0f) return 0.0f;
+  uint32_t ms = millis();
+  uint32_t window = ms / FLARE_WINDOW_MS;
+  uint16_t into = ms % FLARE_WINDOW_MS;
+  uint32_t dice = mixBits(window * 2654435761UL + spot * 40503UL + 2);
+
+  if ((dice & 0xFF) * 100 / 256 >= look.amount) return 0.0f;              // No flare-up this window
+  uint16_t start = (dice >> 8) % (FLARE_WINDOW_MS - FLARE_MS);
+  if (into < start || into >= start + FLARE_MS) return 0.0f;              // Before or after it
+  float inFlare = (float)(into - start) / FLARE_MS;
+  return (inFlare < 0.25f) ? inFlare * 4.0f : (1.0f - inFlare) / 0.75f;   // Up quickly, down slower
+}
+
 // Brightness factor (255 = full) for one LED. Each LED reads its own
 // 'spot' in a smooth noise pattern, so LEDs flicker independently.
 // flicker: in %, 0 = steady, 100 = deepest dips.
@@ -321,17 +376,23 @@ inline uint8_t flickerScale(uint16_t spot, uint8_t flicker) {
 // flicker and the dropouts change over from one look's to the other's as
 // it does. To show a look on its own, give it as 'before' too.
 // 'spot' picks the LED's place in the flicker pattern: give each LED a
-// different one. 'groupSpot' picks when a failing look goes out and when
-// lightning strikes: LEDs with the same one (a scene's group, or a ring)
-// do it together. steady = true turns the flicker, the dropouts and the
-// strikes off.
+// different one. 'groupSpot' picks when a failing look goes out, when
+// lightning strikes and when an explosion's embers flare up: LEDs with
+// the same one (a scene's group, or a ring) do it together. steady =
+// true turns the flicker, the dropouts, the strikes and the flare-ups off.
 inline CRGB drawLook(const Look &look, const Look &before, float phase, uint8_t led,
                      uint8_t ledCount, uint16_t spot, uint16_t groupSpot, bool steady) {
-  CRGB color = lookColor(look, endColor(before, led, ledCount), phase, led, ledCount);
-  if (look.effect == LIGHTNING && !steady) color = lightningColor(look, groupSpot, led, ledCount);
+  CRGB color;
+  if (look.effect == LIGHTNING && !steady) {
+    color = lightningColor(look, groupSpot, led, ledCount);
+  } else if (look.effect == EXPLOSION && !steady) {
+    color = explosionColor(look, phase, emberFlare(look, phase, groupSpot), led, ledCount);
+  } else {
+    color = lookColor(look, endColor(before, led, ledCount), phase, led, ledCount);
+  }
   if (!steady) {
     float arrived = arrival(look, phase);
-    uint8_t flicker = (uint8_t)(lookFlicker(before) + (lookFlicker(look) - lookFlicker(before)) * arrived);
+    uint8_t flicker = (uint8_t)(lookFlicker(before) + (lookFlicker(look, phase) - lookFlicker(before)) * arrived);
     color.nscale8(flickerScale(spot, flicker));
     uint8_t darkBefore = lookDropout(before, groupSpot);
     uint8_t dark = (uint8_t)(darkBefore + (lookDropout(look, groupSpot) - darkBefore) * arrived);

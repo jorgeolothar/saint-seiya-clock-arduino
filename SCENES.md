@@ -14,7 +14,7 @@ The scenes are optional, and all five are switched off in the sketch as it comes
 
 ## 🎬 The demo
 
-The **Demo** scene shows every effect at once, one LED each, so you can see them before setting up a scene of your own. Wire 7 LEDs (a strip, or the first 7 LEDs of a ring) to **A3**, and switch on `USE_DEMO`:
+The **Demo** scene shows every effect at once, one LED each, so you can see them before setting up a scene of your own. Wire 8 LEDs (a strip, or the first 8 LEDs of a ring) to **A3**, and switch on `USE_DEMO`:
 
 | LED | Effect | Look |
 |---|---|---|
@@ -25,6 +25,7 @@ The **Demo** scene shows every effect at once, one LED each, so you can see them
 | 5 | `FAILING` | `FAULTY_LIGHT` |
 | 6 | `LIGHTNING` | `STORM_SKY`, with its own amount of 60, so it strikes more often |
 | 7 | `BUILDUP` | `FREEZE_RAY`, with a pause: it charges every 7 seconds |
+| 8 | `EXPLOSION` | `FIREBALL`, with a pause: it goes off every 6 seconds |
 
 Its lines in **Scenes.h** are also an example of a group's own amount and of `pauseThenRepeat`.
 
@@ -103,6 +104,7 @@ These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too. 
 | `FAULTY_LIGHT` | A cold white light that goes out for a moment or stutters now and then, like a bad wire |
 | `STORM_SKY` | A dim stormy blue sky, struck now and then by 1 to 4 quick white flashes |
 | `FREEZE_RAY` | A dim teal that charges up to ice blue, throbbing faster and faster, bursts in ice white, and fades back down |
+| `FIREBALL` | A white-hot flash that cools through orange and red to smoldering cinders, crackling and flaring up as it cools |
 
 Scene looks are written the same way as flames: see [Making your own flame](README.md#️-making-your-own-flame) in the README.
 
@@ -212,6 +214,30 @@ The group's **cycle ms** is how long one charge, burst and fade back take: `4000
   { 1,    4,    FREEZE_RAY, OFF,      4000,     pauseThenRepeat(6000) },   // Charges for 4 s, rests for 6 s
 ```
 
+### 💥 Explosions
+
+A look with the `EXPLOSION` effect flashes on its **first color** at once, then cools through the rest of its color list to its **last color**, most of the change early. The amount is how much the embers crackle as they cool, in %: `0` = a smooth fade, `100` = crackling hard.
+
+```cpp
+const ColorStop FIREBALL_COLORS[] = { { SNAP, SPARK_WHITE }, { EARLY_FADE, ORANGE }, { STEADY_FADE, RED }, { SMOOTH_FADE, CINDER } };
+const Look FIREBALL               = { EXPLOSION, FIREBALL_COLORS, 60, FIXED_COLORS };
+```
+
+| Part of the cycle | What the LED does |
+|---|---|
+| 0 – 5% | The flash: the first color, at full, steady |
+| 5 – 100% | Cools through the rest of the color list, quickly at first |
+
+**The crackle** grows as it cools: the LEDs flicker more and more, and now and then the embers flare back up toward the flash for a moment. The higher the amount, the more often: at `100`, about every half second. **A group's LEDs flare up together,** like one fire; different groups flare up at different times. Once it has cooled, the flare-ups stop, but the last color keeps crackling. `MODE_FREEZE` turns the crackle off.
+
+The group's **cycle ms** is how long it takes from the flash to cold: `3000` = 3 seconds. Use `pauseThenRepeat(...)` to set the time between explosions, or `ONCE_HOLD` to go off once when the group's hour starts and smolder on the last color.
+
+```cpp
+//  hour  LEDs  on look   off look  cycle ms  repeat
+  { 1,    2,    FIREBALL, OFF,      3000,     ONCE_HOLD },               // Goes off as hour 1 starts
+  { 2,    2,    FIREBALL, OFF,      3000,     pauseThenRepeat(5000) },   // Goes off every 8 s
+```
+
 ## 🧪 Test modes
 
 The scenes follow the clock's `BEHAVIOR` setting in **PART 2** of `FlameClock.ino`:
@@ -253,9 +279,9 @@ The Uno and Nano have 2 KB of memory. Each scene switched on takes some of it fo
 | Switched on | Memory used |
 |---|---|
 | 1 ring, no scenes | 487 bytes (23%) |
-| 1 ring and the demo | 673 bytes (32%) |
+| 1 ring and the demo | 698 bytes (34%) |
 | 1 ring and the Sanctuary | 660 bytes (32%) |
-| 3 rings and all five scenes | 1,343 bytes (65%) |
+| 3 rings and all five scenes | 1,368 bytes (66%) |
 
 If the clock resets by itself or the LEDs show garbage, memory may be running out: switch off a scene you don't need.
 
