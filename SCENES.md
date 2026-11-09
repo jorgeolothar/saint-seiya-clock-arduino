@@ -104,6 +104,7 @@ These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too. 
 | `BEACON` | A burst of 3 short white flashes, then dark. The cycle ms is how often the burst comes |
 | `FAULTY_LIGHT` | A cold white light that goes out for a moment or stutters now and then, like a bad wire |
 | `STORM_SKY` | A dim stormy blue sky, struck now and then by 1 to 4 quick white flashes |
+| `THUNDERSTORM` | Dark clouds drifting along the group, struck now and then by 1 to 4 quick white flashes |
 | `FREEZE_RAY` | A dim teal that charges up to ice blue, throbbing faster and faster, bursts in ice white, and fades back down |
 | `FIREBALL` | A white-hot flash that cools through orange and red to smoldering cinders, crackling and flaring up as it cools |
 | `STROBE` | Quick flashes of cold white. The cycle ms is the rate: `200` = 5 flashes a second. The LEDs are updated every 30 ms, so below `120` some flashes get skipped, though that's hard to see at that speed |
@@ -177,7 +178,7 @@ The failures follow real time, not the group's cycle, so they're the same whatev
 
 ### ⛈️ Lightning
 
-A look with the `LIGHTNING` effect rests on its **last color**, and now and then lightning strikes: 1 to 4 quick flashes, each playing the color list. The first flash is at full strength, and the others at 40 to 100%. The amount is how often it strikes, in %:
+A look with the `LIGHTNING` effect is a sky, and now and then lightning strikes: 1 to 4 quick flashes. Its **first color** is the flash, and the **other colors** are the sky. The first flash is at full strength, and the others at 40 to 100%. The amount is how often it strikes, in %:
 
 ```cpp
 const ColorStop LIGHTNING_COLORS[] = { { SNAP, ICE_WHITE }, { EARLY_FADE, STORM_BLUE } };
@@ -190,11 +191,24 @@ const Look STORM_SKY               = { LIGHTNING, LIGHTNING_COLORS, 30, FIXED_CO
 | `30` | About every 7 seconds, at random |
 | `10` | About every 20 seconds, at random |
 
-Each flash takes 150 ms, and the next one follows 60 to 180 ms after it starts. A strike is over in under 0.7 seconds.
+Each flash takes 150 ms: it goes into the flash color (here with `SNAP`: at once), then fades back into the sky, quickly at first. The next one follows 60 to 180 ms after it starts. A strike is over in under 0.7 seconds.
 
 **A group's LEDs strike together,** like one sky. For clouds that strike on their own, make each cloud its own group with the same hour. To make one cloud strike more often than the others, give its line its own amount.
 
-Like a failing light, lightning follows real time, so the cycle ms doesn't matter: use `0`. It doesn't flicker. `MODE_FREEZE` shows its resting color, and `MODE_COLOR_TEST` shows its first color.
+**Drifting clouds.** With more than one sky color, the sky drifts along the group like a flowing look, one wave along it per cycle, and the strikes light up over it:
+
+```cpp
+const ColorStop THUNDERSTORM_COLORS[] = { { SNAP, ICE_WHITE }, { SMOOTH_FADE, STORM_BLUE }, { SMOOTH_FADE, CLOUD_GRAY } };
+const Look THUNDERSTORM               = { LIGHTNING, THUNDERSTORM_COLORS, 30, FIXED_COLORS };
+```
+
+```cpp
+//  hour  LEDs  on look       off look  cycle ms  repeat
+  { 1,    6,    STORM_SKY,    OFF,      0,        REPEAT },   // A still sky: the cycle doesn't matter
+  { 2,    6,    THUNDERSTORM, OFF,      8000,     REPEAT },   // Clouds drift along the 6 LEDs every 8 s
+```
+
+The group's **cycle ms** is how long the clouds take to drift along the group. Give drifting clouds a few LEDs in a row; on one LED, the sky just slowly brightens and darkens. With one sky color, or a cycle of `0`, the sky holds still on the last color. It doesn't flicker. `MODE_FREEZE` holds the sky still and stops the strikes, and `MODE_COLOR_TEST` shows the flash color.
 
 ### 🔋 Buildup looks
 

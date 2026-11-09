@@ -61,6 +61,17 @@ inline CRGB endColor(const Look &look, uint8_t led, uint8_t ledCount) {
   return (look.effect == BUILDUP) ? firstColor(look, led, ledCount) : lastColor(look, led, ledCount);
 }
 
+// A look with the first color of its list left out: an explosion's
+// cooling, or lightning's sky
+inline Look restOfList(const Look &look) {
+  Look rest = look;
+  if (rest.stopCount > 1) {
+    rest.stops++;
+    rest.stopCount--;
+  }
+  return rest;
+}
+
 // Where a look is at 'phase' (0.0 to 1.0 through its cycle): which color
 // of the list it is fading into, and how far it has got (0.0 to 1.0)
 inline void findStop(const Look &look, float phase, uint8_t &stop, float &level) {
@@ -127,7 +138,12 @@ inline uint8_t pulseCount(const Look &look) {
 // How far a look has taken over from the LED's old color at 'phase':
 // 0.0 = still the old color, 1.0 = past its first color
 inline float arrival(const Look &look, float phase) {
-  if (look.effect == LIGHTNING || look.effect == EXPLOSION) return 1.0f;   // It takes over at once
+  if (look.effect == EXPLOSION) return 1.0f;                 // It takes over at once
+  if (look.effect == LIGHTNING) {                            // Its sky takes over, like GRADIENT
+    Look sky = restOfList(look);
+    sky.effect = GRADIENT;
+    return arrival(sky, phase);
+  }
   float first = (look.effect == HEARTBEAT) ? BEAT_LENGTH     // It takes over during
               : (look.effect == PULSES)    ? PULSE_LENGTH    // its 1st beat or pulse,
               : (look.effect == BUILDUP)   ? CHARGE          // or while charging
@@ -213,18 +229,15 @@ inline CRGB explosionColor(const Look &look, float phase, float flare, uint8_t l
   if (phase < BLAST_FLASH || look.stopCount < 2) return flash;  // The flash
   float cooled = fadeAmount(EARLY_FADE, cooledAt(phase));       // Cooling, quickly at first
   cooled -= cooled * flare * FLARE_BACK_PERCENT / 100.0f;
-  Look cooling = look;                                          // The rest of the color list
-  cooling.stops++;
-  cooling.stopCount--;
-  return listColor(cooling, flash, cooled, led, ledCount);
+  return listColor(restOfList(look), flash, cooled, led, ledCount);
 }
 
 // A look's color at 'phase', before flicker. 'from' is the LED's color
 // before the look started: the look fades from it into its first color.
-// Lightning rests on its last color here: its strikes are drawn by
-// drawLook, as they follow real time.
+// Lightning shows its sky here: its strikes are drawn by drawLook, as
+// they follow real time.
 inline CRGB lookColor(const Look &look, CRGB from, float phase, uint8_t led, uint8_t ledCount) {
-  if (look.effect == LIGHTNING) return endColor(look, led, ledCount);
+  if (look.effect == LIGHTNING) return listColor(restOfList(look), from, phase, led, ledCount);   // Its sky
   if (look.effect == HEARTBEAT) return heartbeatColor(look, from, phase, led, ledCount);
   if (look.effect == PULSES) return pulsesColor(look, from, phase, led, ledCount);
   if (look.effect == BUILDUP) return buildupColor(look, from, phase, led, ledCount);
@@ -308,20 +321,21 @@ static_assert(MOST_FLASHES >= 1 && MOST_FLASHES <= 4, "LIGHTNING: a strike has 1
 static_assert(LONGEST_STRIKE_MS < STRIKE_WINDOW_MS, "LIGHTNING: a strike must fit in its window");
 static_assert(FLASH_WEAKEST_PERCENT <= 100, "LIGHTNING: FLASH_WEAKEST_PERCENT goes up to 100");
 
-// A lightning look's color right now. 'spot' picks the group of LEDs that
-// strike together.
-inline CRGB lightningColor(const Look &look, uint16_t spot, uint8_t led, uint8_t ledCount) {
-  CRGB rest = endColor(look, led, ledCount);
-  if (look.amount == 0) return rest;
+// Is lightning flashing right now? 'amount' is how often it strikes, in
+// %, and 'spot' picks the group of LEDs that strike together. If it is,
+// 'progress' is how far through the flash it is (0.0 to 1.0) and
+// 'strength' how strong the flash is (1.0 for the first one).
+inline bool flashingNow(uint8_t amount, uint16_t spot, float &progress, float &strength) {
+  if (amount == 0) return false;
   uint32_t ms = millis();
   uint32_t window = ms / STRIKE_WINDOW_MS;
   uint16_t into = ms % STRIKE_WINDOW_MS;
   uint32_t dice = mixBits(window * 2654435761UL + spot * 40503UL + 1);
 
-  if ((dice & 0xFF) * 100 / 256 >= look.amount) return rest;               // No strike this window
+  if ((dice & 0xFF) * 100 / 256 >= amount) return false;                   // No strike this window
   uint8_t flashes = 1 + ((dice >> 8) & 3) % MOST_FLASHES;
   uint16_t start = (dice >> 16) % (STRIKE_WINDOW_MS - LONGEST_STRIKE_MS);   // Ends inside the window
-  if (into < start) return rest;                                           // Before the strike
+  if (into < start) return false;                                          // Before the strike
 
   uint32_t more = mixBits(dice);                                           // The gaps and strengths
   uint16_t flashStart = start;
@@ -333,12 +347,29 @@ inline CRGB lightningColor(const Look &look, uint16_t spot, uint8_t led, uint8_t
     flash = i;
   }
   uint16_t inFlash = into - flashStart;
-  if (inFlash >= FLASH_MS) return rest;                                    // After the strike
-  CRGB full = listColor(look, rest, (float)inFlash / FLASH_MS, led, ledCount);
-  if (flash == 0) return full;
-  uint8_t strength = FLASH_WEAKEST_PERCENT +
-                     ((more >> (8 * flash + 4)) & 0xF) * (100 - FLASH_WEAKEST_PERCENT) / 15;
-  return fadeBetween(rest, full, strength / 100.0f);
+  if (inFlash >= FLASH_MS) return false;                                   // After the strike
+  progress = (float)inFlash / FLASH_MS;
+  if (flash == 0) {
+    strength = 1.0f;
+  } else {
+    uint8_t percent = FLASH_WEAKEST_PERCENT +
+                      ((more >> (8 * flash + 4)) & 0xF) * (100 - FLASH_WEAKEST_PERCENT) / 15;
+    strength = percent / 100.0f;
+  }
+  return true;
+}
+
+// A lightning look's color right now, over its sky's color 'sky': each
+// flash fades into its first color in the first half of the flash, then
+// back to the sky, quickly at first. 'spot' picks the group of LEDs that
+// strike together.
+inline CRGB lightningColor(const Look &look, CRGB sky, uint16_t spot, uint8_t led, uint8_t ledCount) {
+  float progress, strength;
+  if (!flashingNow(look.amount, spot, progress, strength)) return sky;
+  CRGB flash = firstColor(look, led, ledCount);
+  CRGB full = (progress < 0.5f) ? fadeBetween(sky, flash, fadeAmount(look.stops[0].fade, progress * 2.0f))
+                                : fadeBetween(flash, sky, fadeAmount(EARLY_FADE, progress * 2.0f - 1.0f));
+  return (strength >= 1.0f) ? full : fadeBetween(sky, full, strength);
 }
 
 // How much an explosion's embers flare up right now, from 0 to 1: at
@@ -383,12 +414,11 @@ inline uint8_t flickerScale(uint16_t spot, uint8_t flicker) {
 inline CRGB drawLook(const Look &look, const Look &before, float phase, uint8_t led,
                      uint8_t ledCount, uint16_t spot, uint16_t groupSpot, bool steady) {
   CRGB color;
-  if (look.effect == LIGHTNING && !steady) {
-    color = lightningColor(look, groupSpot, led, ledCount);
-  } else if (look.effect == EXPLOSION && !steady) {
+  if (look.effect == EXPLOSION && !steady) {
     color = explosionColor(look, phase, emberFlare(look, phase, groupSpot), led, ledCount);
   } else {
     color = lookColor(look, endColor(before, led, ledCount), phase, led, ledCount);
+    if (look.effect == LIGHTNING && !steady) color = lightningColor(look, color, groupSpot, led, ledCount);
   }
   if (!steady) {
     float arrived = arrival(look, phase);
