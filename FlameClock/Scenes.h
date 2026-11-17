@@ -54,8 +54,8 @@
 //                    (A0 to A3 work as well as D2 to D13)
 //    ..._CHIP ...... the LED chip: WS2812B, or for 5mm LEDs often
 //                    PL9823 or APA106
-//    ..._ORDER ..... GRB, or RGB if red and green look swapped (5mm
-//                    LEDs are often RGB)
+//    ..._ORDER ..... RGB for 5mm LEDs, GRB for LED strips and rings.
+//                    If red and green look swapped, change it
 //    ..._POWER ..... the scene's power supply: { most milliamps,
 //                    milliamps per color }, as for RING_POWER in PART 3
 //                    of FlameClock.ino
@@ -86,7 +86,7 @@ const bool ALL_GROUPS_ON = false;
 // #define USE_DEMO
 #define DEMO_PIN   A3
 #define DEMO_CHIP  WS2812B
-#define DEMO_ORDER GRB
+#define DEMO_ORDER GRB      // GRB for a ring or strip, RGB for 5mm LEDs
 const PowerLimit DEMO_POWER = { 300, 20 };
 const Lighting DEMO_LIGHTING = SPOTLIGHT;
 const uint32_t DEMO_START = clockTime(0, 0, 0);
@@ -113,7 +113,7 @@ constexpr Group DEMO[] = {
 // #define USE_SANCTUARY
 #define SANCTUARY_PIN   10
 #define SANCTUARY_CHIP  WS2812B
-#define SANCTUARY_ORDER GRB
+#define SANCTUARY_ORDER RGB
 const PowerLimit SANCTUARY_POWER = { 300, 20 };
 const Lighting SANCTUARY_LIGHTING = SPOTLIGHT;
 const uint32_t SANCTUARY_START = clockTime(0, 0, 0);
@@ -142,7 +142,7 @@ constexpr Group SANCTUARY[] = {
 // #define USE_ASGARD
 #define ASGARD_PIN   11
 #define ASGARD_CHIP  WS2812B
-#define ASGARD_ORDER GRB
+#define ASGARD_ORDER RGB
 const PowerLimit ASGARD_POWER = { 300, 20 };
 const Lighting ASGARD_LIGHTING = SPOTLIGHT;
 const uint32_t ASGARD_START = clockTime(0, 0, 0);
@@ -166,7 +166,7 @@ constexpr Group ASGARD[] = {
 // #define USE_POSEIDON
 #define POSEIDON_PIN   12
 #define POSEIDON_CHIP  WS2812B
-#define POSEIDON_ORDER GRB
+#define POSEIDON_ORDER RGB
 const PowerLimit POSEIDON_POWER = { 300, 20 };
 const Lighting POSEIDON_LIGHTING = SPOTLIGHT;
 const uint32_t POSEIDON_START = clockTime(0, 0, 0);
@@ -190,7 +190,7 @@ constexpr Group POSEIDON[] = {
 // #define USE_HADES
 #define HADES_PIN   A0
 #define HADES_CHIP  WS2812B
-#define HADES_ORDER GRB
+#define HADES_ORDER RGB
 const PowerLimit HADES_POWER = { 300, 20 };
 const Lighting HADES_LIGHTING = SPOTLIGHT;
 const uint32_t HADES_START = clockTime(0, 0, 0);

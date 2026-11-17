@@ -14,7 +14,7 @@ The scenes are optional, and all five are switched off in the sketch as it comes
 
 ## 🎬 The demo
 
-The **Demo** scene shows every effect at once, so you can see them before setting up a scene of your own. Wire a 12-LED ring or strip to **A3**, and switch on `USE_DEMO`:
+The **Demo** scene shows every effect at once, so you can see them before setting up a scene of your own. Wire a 12-LED ring or strip to **A3**, and switch on `USE_DEMO`. For 5mm LEDs, also set `DEMO_ORDER` to `RGB`:
 
 | LED | Effect | Look |
 |---|---|---|
@@ -80,7 +80,7 @@ This saves writing a new look for each amount, and each look you write takes a l
 |---|---|
 | `..._PIN` | The Arduino pin the chain's DIN is wired to. A0 to A3 work as well as D2 to D13. Each scene needs a pin of its own, not used by a ring or the button |
 | `..._CHIP` | The LED chip: `WS2812B`, or for 5mm LEDs often `PL9823` or `APA106` |
-| `..._ORDER` | `GRB`, or `RGB` if red and green look swapped |
+| `..._ORDER` | `RGB` for 5mm LEDs, `GRB` for LED strips and rings. The four temple scenes come set to `RGB`, the demo to `GRB`. If red and green look swapped, change it |
 | `..._POWER` | The scene's power limit: `{ most milliamps, milliamps per color }`. See [Power limit](#-power-limit) |
 | `..._LIGHTING` | `SPOTLIGHT` lights only the current hour's groups. `FILL` keeps each group on from its hour until the end of the cycle |
 | `..._START` | When hour 1 starts, as `clockTime(hour, minute, 0)` |
@@ -334,6 +334,6 @@ If the clock resets by itself or the LEDs show garbage, memory may be running ou
 
 - **The sketch doesn't compile: "... shares its pin":** two scenes, or a scene and a ring or the button, are set to the same pin. Only one of them would light, so give each its own pin.
 - **A scene stays dark:** check that its `#define USE_...` line has no slashes in front. Then set `ALL_GROUPS_ON = true` to rule out the hour.
-- **Red and green look swapped:** 5mm LEDs are often `RGB`. Change the scene's `..._ORDER`. A group showing `SOLID` should look amber, not green.
+- **Red and green look swapped:** change the scene's `..._ORDER`: `RGB` for 5mm LEDs, `GRB` for strips and rings. A group showing `SOLID` should look amber, not green.
 - **Colors flicker or the chain shows random colors:** check the 100 nF capacitors, the 330 Ω resistor and that the scene's GND is joined to the Arduino's GND. Try `PL9823` or `APA106` as the scene's `..._CHIP`.
 - **The wrong group lights up:** the lines in `Scenes.h` must be in the order the LEDs are wired, with the right number of LEDs per group.
