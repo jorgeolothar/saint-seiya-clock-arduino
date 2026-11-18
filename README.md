@@ -74,11 +74,20 @@ At about 3:30 in the afternoon:
 <details>
 <summary>Show the button controls</summary>
 
-- **Short press** → turns the clock **on or off**.
+- **Short press** → turns the clock **on or off**. With [scenes](SCENES.md), it moves to the next of these, then back to the first:
+
+  | | Rings | Scenes |
+  |---|---|---|
+  | **Normal** | The time | Each group in its hour |
+  | **Tour** | Hours rings go round 12 hours in a minute | Each scene runs through all its hours in the same minute, from hour 1. Then back to Normal by itself |
+  | **Showcase** | The time | Every group on |
+  | **Clock only** | The time | Off |
+  | **Off** | Off | Off |
+
 - **Hold for 1 second** → changes the flame you see moving to the **next flame**.
   - Each ring shows the new flame's number like the hours on a clock: flame 3 lights the LEDs at 1, 2 and 3 o'clock.
   - Hold again for the next one.
-  - The clock remembers your choice, even when unplugged.
+- The clock remembers the flame, and Normal, Showcase or Clock only, even when unplugged. The tour's length is `TOUR_SECONDS` in **PART 3** (60 as the sketch comes).
 
 </details>
 
@@ -231,6 +240,18 @@ const PowerLimit RING_POWER = { 400, 20 };   // most milliamps, milliamps per co
 
 **Milliamps per color** is what red, green or blue of one LED draws at full (about 20 for WS2812B; check your LEDs' datasheet). This is an estimate, not a measurement: keep the fuses in your wiring.
 
+## 🌙 Night
+
+The LEDs can **dim at night**. In **PART 1** of `FlameClock.ino`:
+
+```cpp
+const uint8_t NIGHT_PERCENT = 30;                     // 30% of the brightness at night (100 = no dimming)
+const uint32_t NIGHT_START = clockTime(19, 0, 0);     // 7 in the evening
+const uint32_t MORNING_START = clockTime(7, 0, 0);    // 7 in the morning
+```
+
+The LEDs dim over the half hour after `NIGHT_START`, and brighten over the half hour before `MORNING_START`. `NIGHT_PERCENT` is a share of `BRIGHTNESS_PERCENT`: at 25% brightness, 30% at night is about 7.5% of full. The test modes that hold still for checking colors are never dimmed.
+
 ## 🔌 Wiring and Libraries
 
 <details>
@@ -268,6 +289,7 @@ A DS3231 clock module keeps the real time, even while the clock is unplugged. Wi
 | GND | GND |
 
 To use it, remove the two slashes in front of `#define USE_RTC` in **PART 1**. The first time, the module is set to your computer's time when you upload, so check your computer's clock first. **PART 4** of `FlameClock.ino` explains how to change the time for daylight saving, and which battery to use.
+
 
 ### 📚 Required Libraries
 
@@ -310,7 +332,8 @@ With top LED set to `1`, the single LED in the 1st flame's color should be at 12
 
 ### 🩺 Troubleshooting
 
-- **Nothing lights up:** check the 5V, GND and DIN wires. Press the button once, in case the clock is off.
+- **Nothing lights up:** check the 5V, GND and DIN wires. Press the button, in case the clock is off.
+- **The scenes stay dark:** press the button until they come back. **Clock only** and **Off** turn them off.
 - **Red and green look swapped:** change `COLOR_ORDER` to `RGB` in **PART 3**.
 - **The first LED keeps blinking red:** the clock module wasn't found. Check its SDA and SCL wires.
 - **The flame starts in the wrong place:** see [Finding the top LED](#-finding-the-top-led) above.
@@ -331,6 +354,8 @@ The original sketch comes with the 3D model: [🧩 **Saint Seiya Clock on MakerW
 - **10 built-in flames**, and you can make your own with named colors
 - **Rainbow flames** that color each LED by its place on the ring
 - Holding the button **switches flames**, and the choice is remembered when unplugged
+- With scenes, the button also picks a **tour** of every scene in a minute, a **showcase** of every group, or the **clock only**
+- The LEDs can **dim at night**, between two times you pick
 - Can operate **without an RTC module**, using a built-in software clock
 - **Test modes** for checking colors, timing and the top LED, and a sped-up day for demos
 - Supports **1 to 4 LED rings**, each with its own top LED

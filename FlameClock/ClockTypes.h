@@ -38,6 +38,22 @@ enum Behavior {
   MODE_FREEZE         // Holds still at one moment
 };
 
+// ---- What the button picks: a short press moves to the next one ----
+enum Lights : uint8_t {
+  LIGHTS_NORMAL,      // The clock, and the scenes in their hours
+  LIGHTS_TOUR,        // Every scene runs through all its hours in TOUR_SECONDS, then back to normal
+  LIGHTS_SHOWCASE,    // Every group of every scene on
+  LIGHTS_CLOCK_ONLY,  // The scenes off
+  LIGHTS_OFF,         // Everything off
+  LIGHTS_COUNT        // How many there are
+};
+
+// The one after 'now'. Without scenes, only normal and off.
+inline Lights nextLights(Lights now, bool haveScenes) {
+  if (!haveScenes) return now == LIGHTS_OFF ? LIGHTS_NORMAL : LIGHTS_OFF;
+  return (Lights)((now + 1) % LIGHTS_COUNT);
+}
+
 // ---- Time of day ----
 // The program counts time in milliseconds since midnight.
 const uint32_t DAY_MS = 24UL * 60 * 60 * 1000;

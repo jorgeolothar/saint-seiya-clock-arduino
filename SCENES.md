@@ -12,6 +12,20 @@ The scenes are optional, and all five are switched off in the sketch as it comes
 | **Poseidon** | 7 temples, one per hour, then Poseidon's throne in hour 8 | 8 hours, 3 times a day | D12 |
 | **Hades** | 7 temples, one per hour, then Hades' throne in hour 8 | 8 hours, 3 times a day | A0 |
 
+## 🔘 The button
+
+With scenes, a short press of the clock's button moves to the next of these, then back to the first:
+
+| | What the scenes do |
+|---|---|
+| **Normal** | Each group lights in its hour |
+| **Tour** | Every scene runs through all its hours from hour 1, all in the same minute, and the hours rings go round 12 hours with them. Then back to Normal by itself. Looks keep their own speed |
+| **Showcase** | Every group of every scene on |
+| **Clock only** | The scenes are off, the rings show the time |
+| **Off** | Everything off |
+
+The clock remembers Normal, Showcase or Clock only, even when unplugged. Set the tour's length with `TOUR_SECONDS` in **PART 3** of `FlameClock.ino`.
+
 ## 🎬 The demo
 
 The **Demo** scene shows every effect at once, so you can see them before setting up a scene of your own. Wire a 12-LED ring or strip to **A3**, and switch on `USE_DEMO`. For 5mm LEDs, also set `DEMO_ORDER` to `RGB`:
@@ -87,7 +101,7 @@ This saves writing a new look for each amount, and each look you write takes a l
 
 The cycle should fit a day evenly (8 or 12 hours, for example). If it doesn't, it starts again at `..._START` every day.
 
-`ALL_GROUPS_ON`, at the top of `Scenes.h`, turns every group of every scene on, whatever the hour. It's handy for checking the wiring. Set it back to `false` when you're done.
+`ALL_GROUPS_ON`, at the top of `Scenes.h`, turns every group of every scene on, whatever the hour, like the button's **Showcase** but in every mode. It's handy for checking the wiring. Set it back to `false` when you're done.
 
 ## 🎨 The scene looks
 
@@ -323,17 +337,17 @@ The Uno and Nano have 2 KB of memory. Each scene switched on takes some of it fo
 
 | Switched on | Memory used |
 |---|---|
-| 1 ring, no scenes | 491 bytes (23%) |
-| 1 ring and the demo | 752 bytes (36%) |
-| 1 ring and the Sanctuary | 664 bytes (32%) |
-| 3 rings and all five scenes | 1,422 bytes (69%) |
+| 1 ring, no scenes | 500 bytes (24%) |
+| 1 ring and the demo | 761 bytes (37%) |
+| 1 ring and the Sanctuary | 673 bytes (32%) |
+| 3 rings and all five scenes | 1,415 bytes (69%) |
 
 If the clock resets by itself or the LEDs show garbage, memory may be running out: switch off a scene you don't need.
 
 ## 🩺 Troubleshooting
 
 - **The sketch doesn't compile: "... shares its pin":** two scenes, or a scene and a ring or the button, are set to the same pin. Only one of them would light, so give each its own pin.
-- **A scene stays dark:** check that its `#define USE_...` line has no slashes in front. Then set `ALL_GROUPS_ON = true` to rule out the hour.
+- **A scene stays dark:** press the button until the scenes come back: **Clock only** and **Off** turn them off. Then check that its `#define USE_...` line has no slashes in front. Press the button for **Showcase** to rule out the hour.
 - **Red and green look swapped:** change the scene's `..._ORDER`: `RGB` for 5mm LEDs, `GRB` for strips and rings. A group showing `SOLID` should look amber, not green.
 - **Colors flicker or the chain shows random colors:** check the 100 nF capacitors, the 330 Ω resistor and that the scene's GND is joined to the Arduino's GND. Try `PL9823` or `APA106` as the scene's `..._CHIP`.
 - **The wrong group lights up:** the lines in `Scenes.h` must be in the order the LEDs are wired, with the right number of LEDs per group.
