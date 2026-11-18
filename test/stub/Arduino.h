@@ -7,7 +7,8 @@ inline void delay(unsigned long) {}
 #define LOW 0
 #define HIGH 1
 #define INPUT_PULLUP 2
-inline int digitalRead(int) { return HIGH; }
+static int fakeButton = HIGH;                     // Tests set it to LOW to press the button
+inline int digitalRead(int) { return fakeButton; }
 inline void pinMode(int, int) {}
 #define constrain(amt, low, high) ((amt) < (low) ? (low) : ((amt) > (high) ? (high) : (amt)))
 inline long map(long x, long a, long b, long c, long d) { return (x - a) * (d - c) / (b - a) + c; }

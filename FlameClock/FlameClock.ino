@@ -19,12 +19,23 @@
 //  leaves the ring dark behind the flame.
 //
 //  THE BUTTON
-//    Short press ...... turns the clock on or off.
+//    Short press ...... turns the clock on or off. With scenes, it moves
+//                       to the next of these, then back to the first:
+//                         Normal ...... the clock, and the scenes in
+//                                       their hours
+//                         Tour ........ every scene runs through all its
+//                                       hours in a minute, and hours rings
+//                                       through 12 hours with them. Then
+//                                       back to Normal by itself.
+//                         Showcase .... every group of every scene on
+//                         Clock only .. the scenes off
+//                         Off ......... everything off
 //    Hold 1 second .... changes the flame you see moving to the next one.
 //                       Each ring then shows the flame's number like the
 //                       hours on a clock: flame 3 lights 1, 2 and 3 o'clock.
-//                       Hold again for the next one. The clock remembers
-//                       your choice, even when unplugged.
+//                       Hold again for the next one.
+//    The clock remembers the flame and the Normal, Showcase or Clock only
+//    choice, even when unplugged.
 //
 //  SCENES (optional, all switched off)
 //  The Arduino can also light scenes: groups of LEDs, like the temples
@@ -120,6 +131,15 @@ const bool START_ON = true;
 //          the clock module notes in PART 4.
 // #define USE_RTC
 
+// Dim the LEDs at night? From NIGHT_START to MORNING_START, the rings
+// and scenes dim to this % of their brightness (BRIGHTNESS_PERCENT, in
+// PART 3), over half an hour.
+//   100 ... no dimming (the night setting is off)
+//   30 .... 30% of the brightness at night
+const uint8_t NIGHT_PERCENT = 100;
+const uint32_t NIGHT_START = clockTime(19, 0, 0);     // 7 in the evening
+const uint32_t MORNING_START = clockTime(7, 0, 0);    // 7 in the morning
+
 // =====================================================================
 //  PART 2: TESTING
 //  Handy for checking colors and timing. Set BEHAVIOR back to
@@ -207,10 +227,13 @@ const unsigned long FRAME_MS = 30;
 const unsigned long LONG_PRESS_MS = 1000;     // How long to hold it (1000 = 1 second)
 const unsigned long DEBOUNCE_MS = 40;         // Ignore shorter presses (button noise)
 
-// Remember the flames picked with the button when unplugged?
+// How long the button's tour takes, in seconds
+const uint16_t TOUR_SECONDS = 60;
+
+// Remember the flames and lights picked with the button when unplugged?
 // true = yes, false = no. Uploading a changed sketch always goes back to
-// the flames in PART 1.
-const bool REMEMBER_FLAME_CHOICE = true;
+// the flames in PART 1, and to Normal.
+const bool REMEMBER_BUTTON_CHOICES = true;
 
 // The LED rings
 #define COLOR_ORDER GRB     // If red and green look swapped, change to RGB
@@ -242,7 +265,9 @@ const bool REMEMBER_FLAME_CHOICE = true;
 //
 //  TROUBLESHOOTING
 //  - Nothing lights up: check the 5V, GND and DIN wires (DIN goes to pin
-//    D6 for ring 1). Press the button once, in case the clock is off.
+//    D6 for ring 1). Press the button, in case the clock is off.
+//  - The scenes stay dark: press the button until they come back. Clock
+//    only and Off turn them off.
 //  - Red and green look swapped: change COLOR_ORDER to RGB (PART 3).
 //  - The first LED keeps blinking red: the clock module was not found.
 //    Check its SDA (A4) and SCL (A5) wires, or put the two slashes back
@@ -372,11 +397,19 @@ static_assert(timesUsed(POSEIDON_PIN) == 1, "POSEIDON_PIN (Scenes.h) shares its 
 static_assert(timesUsed(HADES_PIN) == 1, "HADES_PIN (Scenes.h) shares its pin with a ring, the button, the clock module or another scene");
 #endif
 
+static_assert(NIGHT_PERCENT <= 100, "NIGHT_PERCENT (PART 1) goes up to 100");
+static_assert(TOUR_SECONDS >= 1, "TOUR_SECONDS (PART 3) must be at least 1");
+const uint32_t TOUR_MS = TOUR_SECONDS * 1000UL;
+const uint32_t HALF_DAY_MS = DAY_MS / 2;
+
 // The two flames each ring shows right now. They start as written in
 // PART 1, and the long press changes them.
 const Look *currentFlame[MAX_RINGS][2];
 
-bool systemState = START_ON;                // Clock on (true) or off (false)
+Lights lights = LIGHTS_OFF;                 // What the button picked (setup picks the first)
+Lights savedLights = LIGHTS_NORMAL;         // The last Normal, Showcase or Clock only
+unsigned long tourStart = 0;                // When the tour started (millis)
+uint32_t tourFrom = 0;                      // The tour's hours rings start at midnight or noon
 
 uint32_t countedTime = START_TIME % DAY_MS; // Time counted without an RTC (ms since midnight)
 unsigned long lastTick = 0;                 // When countedTime was last moved on
@@ -536,17 +569,80 @@ void drawColorTest(int ring) {
   }
 }
 
+// ---------------------------------------------------------------------
+//  THE TOUR: every scene's whole cycle, and 12 hours, in TOUR_SECONDS
+// ---------------------------------------------------------------------
+void startTour() {
+  tourStart = millis();
+  tourFrom = (timeOfDay() >= HALF_DAY_MS) ? HALF_DAY_MS : 0;   // This half of the day
+}
+
+// How far the tour is, from 0 (the start) to 1 (the end)
+float tourDone() {
+  uint32_t into = millis() - tourStart;
+  return into >= TOUR_MS ? 1.0f : (float)into / TOUR_MS;
+}
+
+// The time a ring shows: during the tour, hours rings go round the
+// 12 hours with the scenes. Minutes and seconds rings keep the time.
+uint32_t ringTime(int ring, uint32_t ms) {
+  if (lights != LIGHTS_TOUR || CLOCKS[ring].unit != SHOW_HOURS) return ms;
+  return tourFrom + (uint32_t)(tourDone() * (HALF_DAY_MS - 1));
+}
+
+// The time a scene shows, and how much faster than real time it runs:
+// during the tour, its whole cycle from hour 1
+uint32_t sceneTime(const Scene &scene, uint32_t ms, uint32_t &speed) {
+  if (lights != LIGHTS_TOUR) return ms;
+  uint32_t cycleMs = scene.hours * HOUR_MS;
+  speed = cycleMs / TOUR_MS;
+  return scene.startMs + (uint32_t)(tourDone() * (cycleMs - 1));
+}
+
+// ---------------------------------------------------------------------
+//  NIGHT: dimmer from NIGHT_START to MORNING_START (PART 1)
+// ---------------------------------------------------------------------
+const uint32_t NIGHT_FADE_MS = 30UL * 60 * 1000;   // Half an hour to dim, and to brighten
+
+// How much of the night it is at time of day 'ms', from 0 (day) to 255
+// (night): it dims over the half hour after NIGHT_START, and brightens
+// over the half hour before MORNING_START
+uint8_t nightLevel(uint32_t ms) {
+  uint32_t length = (MORNING_START % DAY_MS + DAY_MS - NIGHT_START % DAY_MS) % DAY_MS;
+  uint32_t since = (ms % DAY_MS + DAY_MS - NIGHT_START % DAY_MS) % DAY_MS;
+  if (since >= length) return 0;                   // Day
+  uint32_t edge = (since < length - since) ? since : length - since;
+  return edge >= NIGHT_FADE_MS ? 255 : edge * 255 / NIGHT_FADE_MS;
+}
+
+// The brightness for a night level (0 = day, 255 = night)
+uint8_t nightBrightness(uint8_t level) {
+  uint16_t full = BRIGHTNESS_PERCENT * 255 / 100;
+  uint16_t night = (full * NIGHT_PERCENT + 50) / 100;
+  return full - (uint32_t)(full - night) * level / 255;
+}
+
 // Draws every ring and every scene
 void updateDisplay() {
+  if (lights == LIGHTS_TOUR && millis() - tourStart >= TOUR_MS) lights = LIGHTS_NORMAL;   // The tour is over
   uint32_t ms = timeOfDay();
   for (int ring = 0; ring < NUM_CLOCKS; ring++) {
     if (BEHAVIOR == MODE_COLOR_TEST) drawColorTest(ring);
-    else drawClock(ring, ms, BEHAVIOR == MODE_FREEZE);   // No flicker while frozen
+    else drawClock(ring, ringTime(ring, ms), BEHAVIOR == MODE_FREEZE);   // No flicker while frozen
   }
-  uint32_t speed = (BEHAVIOR == MODE_ACCELERATED) ? ACCELERATED_SPEED : 1;
   for (int i = 0; i < NUM_SCENES; i++) {
-    drawScene(*SCENES[i], ms, speed, BEHAVIOR == MODE_FREEZE, BEHAVIOR == MODE_COLOR_TEST, ALL_GROUPS_ON);
+    const Scene &scene = *SCENES[i];
+    if (lights == LIGHTS_CLOCK_ONLY) {
+      for (uint16_t led = 0; led < scene.ledCount; led++) scene.leds[led] = CRGB(0, 0, 0);
+      continue;
+    }
+    uint32_t speed = (BEHAVIOR == MODE_ACCELERATED) ? ACCELERATED_SPEED : 1;
+    uint32_t at = sceneTime(scene, ms, speed);
+    drawScene(scene, at, speed, BEHAVIOR == MODE_FREEZE, BEHAVIOR == MODE_COLOR_TEST,
+              ALL_GROUPS_ON || lights == LIGHTS_SHOWCASE);
   }
+  bool colorCheck = (BEHAVIOR == MODE_COLOR_TEST || BEHAVIOR == MODE_FREEZE);   // Never dimmed
+  FastLED.setBrightness(nightBrightness(colorCheck ? 0 : nightLevel(ms)));
   showLeds();
 }
 
@@ -570,14 +666,16 @@ void showRtcError() {
 #endif
 
 // ---------------------------------------------------------------------
-//  REMEMBERING THE BUTTON'S FLAME CHOICE
+//  REMEMBERING THE BUTTON'S CHOICES
 // ---------------------------------------------------------------------
-// The choice is stored in the Arduino's EEPROM memory, which keeps its
+// The choices are stored in the Arduino's EEPROM memory, which keeps its
 // contents without power. A number made from the upload time is stored
-// with it, so a new upload starts again from the flames in PART 1.
+// with them, so a new upload starts again from the flames in PART 1, and
+// from Normal.
 struct SavedChoice {
   uint16_t uploadId;
   uint8_t flameNumber[MAX_RINGS][2];   // Place in FLAME_LIST, 255 = as written in PART 1
+  uint8_t lights;                      // LIGHTS_NORMAL, LIGHTS_SHOWCASE or LIGHTS_CLOCK_ONLY
 };
 
 uint16_t uploadId() {
@@ -596,7 +694,7 @@ int flameNumber(const Look *flame) {
 }
 
 void saveChoice() {
-  if (!REMEMBER_FLAME_CHOICE) return;
+  if (!REMEMBER_BUTTON_CHOICES) return;
   SavedChoice saved;
   saved.uploadId = uploadId();
   for (int ring = 0; ring < MAX_RINGS; ring++) {
@@ -604,19 +702,23 @@ void saveChoice() {
       saved.flameNumber[ring][pass] = (ring < NUM_CLOCKS) ? (uint8_t)flameNumber(currentFlame[ring][pass]) : 255;
     }
   }
+  saved.lights = savedLights;
   EEPROM.put(0, saved);   // Only writes the bytes that changed
 }
 
 void loadChoice() {
-  if (!REMEMBER_FLAME_CHOICE) return;
+  if (!REMEMBER_BUTTON_CHOICES) return;
   SavedChoice saved;
   EEPROM.get(0, saved);
-  if (saved.uploadId != uploadId()) return;   // New upload: keep the flames from PART 1
+  if (saved.uploadId != uploadId()) return;   // New upload: keep the flames from PART 1, and Normal
   for (int ring = 0; ring < NUM_CLOCKS; ring++) {
     for (int pass = 0; pass < 2; pass++) {
       uint8_t number = saved.flameNumber[ring][pass];
       if (number < FLAME_COUNT) currentFlame[ring][pass] = FLAME_LIST[number];
     }
+  }
+  if (NUM_SCENES > 0 && (saved.lights == LIGHTS_SHOWCASE || saved.lights == LIGHTS_CLOCK_ONLY)) {
+    savedLights = (Lights)saved.lights;
   }
 }
 
@@ -649,7 +751,7 @@ void nextFlame() {
   for (int ring = 0; ring < NUM_CLOCKS; ring++) {
     int pass, position;
     float progress;
-    findFlame(ring, ms, pass, position, progress);
+    findFlame(ring, ringTime(ring, ms), pass, position, progress);   // The flame on show, in the tour too
     int next = (flameNumber(currentFlame[ring][pass]) + 1) % FLAME_COUNT;
     currentFlame[ring][pass] = FLAME_LIST[next];
     shown[ring] = FLAME_LIST[next];
@@ -660,8 +762,18 @@ void nextFlame() {
 }
 
 // ---------------------------------------------------------------------
-//  BUTTON: short press = on/off, long press = next flame
+//  BUTTON: short press = next lights, long press = next flame
 // ---------------------------------------------------------------------
+void nextLightsPressed() {
+  lights = nextLights(lights, NUM_SCENES > 0);
+  if (lights == LIGHTS_TOUR) startTour();
+  if (lights == LIGHTS_OFF) clearDisplay();
+  if (lights == LIGHTS_NORMAL || lights == LIGHTS_SHOWCASE || lights == LIGHTS_CLOCK_ONLY) {
+    savedLights = lights;                          // Remembered when unplugged
+    saveChoice();
+  }
+}
+
 void handleButton() {
   bool pressed = (digitalRead(BUTTON_PIN) == LOW);
   unsigned long now = millis();
@@ -674,13 +786,12 @@ void handleButton() {
   else if (pressed && buttonDown && !longPressDone && now - pressStartTime >= LONG_PRESS_MS) {
     longPressDone = true;                          // Held long enough: next flame
     nextFlame();
-    if (!systemState) clearDisplay();
+    if (lights == LIGHTS_OFF) clearDisplay();
   }
   else if (!pressed && buttonDown) {               // Button was released
     buttonDown = false;
     if (!longPressDone && now - pressStartTime >= DEBOUNCE_MS) {
-      systemState = !systemState;                  // Short press: on/off
-      if (!systemState) clearDisplay();
+      nextLightsPressed();                         // Short press: the next lights
     }
   }
 }
@@ -735,6 +846,7 @@ void setup() {
     currentFlame[ring][1] = CLOCKS[ring].flame[1];
   }
   loadChoice();
+  lights = START_ON ? savedLights : LIGHTS_OFF;
 
   pinMode(BUTTON_PIN, INPUT_PULLUP);               // Button input with internal pull-up
   lastTick = millis();
@@ -751,7 +863,7 @@ void loop() {
   if (now - frameStart < FRAME_MS) return;         // Not time yet
   frameStart = (now - frameStart < 2 * FRAME_MS) ? frameStart + FRAME_MS : now;
 
-  if (systemState) {
+  if (lights != LIGHTS_OFF) {
     updateDisplay();                               // Redraw every frame so flames keep flickering
   }
 }

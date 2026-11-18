@@ -754,6 +754,165 @@ static void checkPause() {
   check(own.pauseMs == 0, "the Sanctuary's groups read back with no pause");
 }
 
+// ---- The button's lights, the tour and night ----
+// Presses the button for 100 ms, as loop() sees it
+static void pressButton() {
+  fakeButton = LOW;
+  loop();
+  fakeMillis += 100;
+  loop();
+  fakeButton = HIGH;
+  loop();
+  fakeMillis += 1;
+}
+
+// Sets the time of day the next frame draws at (no clock module in the tests)
+static void setTime(uint32_t ms) {
+  countedTime = ms;
+  lastTick = millis();
+}
+
+static bool dark(const CRGB *leds, int from, int count) {
+  for (int i = from; i < from + count; i++)
+    if (!(leds[i] == K)) return false;
+  return true;
+}
+
+static bool lit(const CRGB *leds, int from, int count) {
+  for (int i = from; i < from + count; i++)
+    if (leds[i] == K) return false;
+  return true;
+}
+
+static uint8_t savedLightsInEeprom() {
+  SavedChoice saved;
+  EEPROM.get(0, saved);
+  return saved.lights;
+}
+
+static void checkLights() {
+  printf("The button's lights:\n");
+  check(nextLights(LIGHTS_NORMAL, true) == LIGHTS_TOUR && nextLights(LIGHTS_TOUR, true) == LIGHTS_SHOWCASE &&
+        nextLights(LIGHTS_SHOWCASE, true) == LIGHTS_CLOCK_ONLY && nextLights(LIGHTS_CLOCK_ONLY, true) == LIGHTS_OFF &&
+        nextLights(LIGHTS_OFF, true) == LIGHTS_NORMAL, "with scenes: Normal, Tour, Showcase, Clock only, Off, Normal");
+  check(nextLights(LIGHTS_NORMAL, false) == LIGHTS_OFF && nextLights(LIGHTS_OFF, false) == LIGHTS_NORMAL,
+        "without scenes: on and off, as before");
+
+  const Scene &sanctuary = *SCENES[1];
+  const CRGB *temples = sanctuary.leds;                   // Aries 0-1, Taurus 2-3 ... Libra 12-13
+  fakeMillis = 5000000;
+  loop();
+  check(lights == LIGHTS_NORMAL, "it starts on Normal (START_ON)");
+  setTime(clockTime(0, 30, 0));                           // Aries' hour
+  updateDisplay();
+  check(lit(temples, 0, 2) && dark(temples, 2, 2), "Normal: the hour's temple on, the next one off");
+
+  pressButton();
+  check(lights == LIGHTS_TOUR, "a short press: the tour");
+  fakeMillis = tourStart;
+  uint32_t speed = 1;
+  check(sceneTime(sanctuary, 0, speed) == sanctuary.startMs && speed == 720,
+        "the tour starts every scene at hour 1, looks at their own speed (12 hours in 60 s: 720 times)");
+  unsigned long tourStarted = tourStart;
+  fakeMillis = tourStarted + 32500;                       // 6.5 of 12 hours, 4.33 of 8
+  setTime(clockTime(0, 30, 0));
+  updateDisplay();
+  uint32_t at = sceneTime(sanctuary, 0, speed);
+  check(at / HOUR_MS == 6 && lit(temples, 12, 2) && dark(temples, 0, 2), "32.5 s in: Libra's hour, Aries off");
+  check(sceneTime(*SCENES[2], 0, speed) / HOUR_MS == 4 && speed == 480, "an 8 hour scene: hour 5, 480 times faster");
+  int pass, position;
+  float progress;
+  findFlame(0, ringTime(0, clockTime(0, 30, 0)), pass, position, progress);
+  check(CLOCKS[0].unit == SHOW_HOURS && pass == 0 && position == 6 && progress > 0.45f && progress < 0.55f,
+        "the hours ring goes round with it: halfway past 6 o'clock");
+  fakeMillis = tourStarted + TOUR_MS - 1;
+  check(sceneTime(sanctuary, 0, speed) / HOUR_MS == 11, "the last moment: still Pisces' hour");
+  loop();
+  check(lights == LIGHTS_TOUR, "the tour lasts TOUR_SECONDS");
+  fakeMillis = tourStarted + TOUR_MS + FRAME_MS;
+  loop();
+  check(lights == LIGHTS_NORMAL, "then back to Normal by itself");
+  fakeMillis += 1000;
+  setTime(clockTime(15, 0, 0));
+  lights = LIGHTS_TOUR;
+  startTour();
+  findFlame(0, ringTime(0, clockTime(15, 0, 0)), pass, position, progress);
+  check(pass == 1 && position == 0, "in the afternoon, the hours ring tours from noon");
+  lights = LIGHTS_NORMAL;
+  fakeMillis += 1000;
+
+  pressButton();                                          // Tour
+  pressButton();
+  check(lights == LIGHTS_SHOWCASE && savedLightsInEeprom() == LIGHTS_SHOWCASE, "the next press: Showcase, remembered");
+  setTime(clockTime(0, 30, 0));
+  updateDisplay();
+  check(lit(temples, 0, sanctuary.ledCount), "Showcase: every temple on");
+
+  pressButton();
+  check(lights == LIGHTS_CLOCK_ONLY && savedLightsInEeprom() == LIGHTS_CLOCK_ONLY, "then Clock only, remembered");
+  setTime(clockTime(0, 30, 0));
+  updateDisplay();
+  bool scenesDark = true;
+  for (int i = 0; i < NUM_SCENES; i++) scenesDark = scenesDark && dark(SCENES[i]->leds, 0, SCENES[i]->ledCount);
+  check(scenesDark && !dark(leds[0], 0, LED_PER_RING), "Clock only: every scene dark, the ring on");
+
+  pressButton();
+  check(lights == LIGHTS_OFF && savedLightsInEeprom() == LIGHTS_CLOCK_ONLY, "then Off, not remembered");
+  unsigned long shows = FastLED.shows;
+  for (int i = 0; i < 100; i++) { fakeMillis += 10; loop(); }
+  check(FastLED.shows == shows, "Off: no frames sent");
+  pressButton();
+  check(lights == LIGHTS_NORMAL && savedLightsInEeprom() == LIGHTS_NORMAL, "and back to Normal");
+
+  fakeButton = LOW;                                       // A long press changes the flame, not the lights
+  loop();
+  fakeMillis += LONG_PRESS_MS + 10;
+  loop();
+  fakeButton = HIGH;
+  loop();
+  check(lights == LIGHTS_NORMAL, "holding the button leaves the lights alone");
+
+  SavedChoice saved;
+  EEPROM.get(0, saved);
+  saved.lights = LIGHTS_SHOWCASE;
+  EEPROM.put(0, saved);
+  savedLights = LIGHTS_NORMAL;
+  loadChoice();
+  check(savedLights == LIGHTS_SHOWCASE, "Showcase comes back after unplugging");
+  saved.lights = LIGHTS_TOUR;
+  EEPROM.put(0, saved);
+  savedLights = LIGHTS_NORMAL;
+  loadChoice();
+  check(savedLights == LIGHTS_NORMAL, "a tour or Off never comes back: Normal");
+  saved.uploadId++;
+  saved.lights = LIGHTS_CLOCK_ONLY;
+  EEPROM.put(0, saved);
+  loadChoice();
+  check(savedLights == LIGHTS_NORMAL, "a new upload starts on Normal");
+  for (int ring = 0; ring < NUM_CLOCKS; ring++) {        // Undo the long press
+    currentFlame[ring][0] = CLOCKS[ring].flame[0];
+    currentFlame[ring][1] = CLOCKS[ring].flame[1];
+  }
+}
+
+static void checkNight() {
+  printf("Night (NIGHT_PERCENT = %u, from %lu:00 to %lu:00):\n", (unsigned)NIGHT_PERCENT,
+         (unsigned long)(NIGHT_START / HOUR_MS), (unsigned long)(MORNING_START / HOUR_MS));
+  uint32_t night = NIGHT_START, morning = MORNING_START, half = NIGHT_FADE_MS / 2;
+  check(nightLevel(night - 1) == 0 && nightLevel(night) == 0, "day, up to NIGHT_START");
+  check(nightLevel(night + half) == 127 && nightLevel(night + NIGHT_FADE_MS) == 255,
+        "dims over the half hour after it");
+  check(nightLevel(0) == 255 && nightLevel(morning - NIGHT_FADE_MS) == 255, "night, across midnight");
+  check(nightLevel(morning - half) == 127 && nightLevel(morning) == 0 && nightLevel(clockTime(12, 0, 0)) == 0,
+        "brightens over the half hour before MORNING_START, then day");
+  check(nightLevel(night + DAY_MS) == 0 && nightLevel(night + half + DAY_MS) == 127, "times past midnight wrap round");
+
+  uint8_t full = BRIGHTNESS_PERCENT * 255 / 100;
+  check(nightBrightness(0) == full, "day: BRIGHTNESS_PERCENT, as before");
+  check(nightBrightness(255) == (full * NIGHT_PERCENT + 50) / 100, "night: NIGHT_PERCENT of it");
+  check(nightBrightness(127) <= full && nightBrightness(127) >= nightBrightness(255), "in between while it fades");
+}
+
 int main() {
   setup();
 
@@ -813,6 +972,8 @@ int main() {
   checkPause();
   checkGroupAmount();
   checkScenes();
+  checkLights();
+  checkNight();
 
   printf(failures ? "%d check(s) FAILED\n" : "All checks passed\n", failures);
   return failures ? 1 : 0;
