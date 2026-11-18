@@ -101,7 +101,7 @@ At about 3:30 in the afternoon:
    | [Flames.h](FlameClock/Flames.h) | The clock's flames. |
    | [Colors.h](FlameClock/Colors.h) | The named colors the flames use. |
    | [Scenes.h](FlameClock/Scenes.h), [SceneLooks.h](FlameClock/SceneLooks.h) | Optional scenes, switched off. See [SCENES.md](SCENES.md). |
-   | [LookTypes.h](FlameClock/LookTypes.h), [ClockTypes.h](FlameClock/ClockTypes.h), [SceneTypes.h](FlameClock/SceneTypes.h), [Effects.h](FlameClock/Effects.h), [SceneDriver.h](FlameClock/SceneDriver.h), [Power.h](FlameClock/Power.h) | The building blocks. No need to open them. |
+   | [LookTypes.h](FlameClock/LookTypes.h), [ClockTypes.h](FlameClock/ClockTypes.h), [SceneTypes.h](FlameClock/SceneTypes.h), [Effects.h](FlameClock/Effects.h), [SceneDriver.h](FlameClock/SceneDriver.h), [Power.h](FlameClock/Power.h), [ClockModule.h](FlameClock/ClockModule.h) | The building blocks. No need to open them. |
 
 2. Install the libraries (see [Wiring and Libraries](#-wiring-and-libraries)).
 3. Open **FlameClock.ino** in the Arduino IDE. The other files show up as tabs.
@@ -290,7 +290,6 @@ A DS3231 clock module keeps the real time, even while the clock is unplugged. Wi
 
 To use it, remove the two slashes in front of `#define USE_RTC` in **PART 1**. The first time, the module is set to your computer's time when you upload, so check your computer's clock first. **PART 4** of `FlameClock.ino` explains how to change the time for daylight saving, and which battery to use.
 
-
 ### 📚 Required Libraries
 
 Install these through:
@@ -298,7 +297,8 @@ Install these through:
 **Arduino IDE → Sketch → Include Library → Manage Libraries**
 
 - **FastLED** — always required
-- **RTClib** — only required when using an RTC clock module
+
+The clock module needs no library.
 
 </details>
 

@@ -54,8 +54,7 @@
 //
 //  LIBRARIES TO INSTALL
 //  In the Arduino IDE: Sketch > Include Library > Manage Libraries
-//    FastLED ....... always needed
-//    RTClib ........ only if you use a clock module
+//    FastLED ....... always needed. The clock module needs no library.
 //
 //  FILES
 //  Keep these files together in a folder called FlameClock. The Arduino
@@ -72,6 +71,7 @@
 //    Effects.h ........ how looks are drawn
 //    SceneDriver.h .... how scenes are drawn
 //    Power.h .......... the power limit
+//    ClockModule.h .... reads and sets the clock module's time
 //
 // =====================================================================
 
@@ -84,6 +84,7 @@
 #include "Power.h"
 #include "Scenes.h"
 #include "SceneDriver.h"
+#include "ClockModule.h"
 
 // =====================================================================
 //  PART 1: YOUR CLOCKS
@@ -293,10 +294,6 @@ const int FLAME_COUNT = sizeof(FLAME_LIST) / sizeof(FLAME_LIST[0]);
 static_assert(NUM_CLOCKS >= 1 && NUM_CLOCKS <= MAX_RINGS, "CLOCKS must list 1, 2, 3 or 4 rings");
 static_assert(FLAME_COUNT >= 1 && FLAME_COUNT <= LED_PER_RING, "FLAME_LIST must hold 1 to 12 flames");
 
-#ifdef USE_RTC
-  #include <RTClib.h>         // RTC library
-  RTC_DS3231 rtc;             // RTC module object
-#endif
 
 // ---------------------------------------------------------------------
 //  Program state
@@ -427,14 +424,17 @@ unsigned long pressStartTime = 0;           // When the current press started
 uint32_t rtcTimeOfDay() {
   static uint8_t lastSecond = 255;
   static unsigned long secondStarted = 0;
-  DateTime now = rtc.now();
-  if (now.second() != lastSecond) {
-    lastSecond = now.second();
+  static uint8_t reg[3];                           // Second, minute, hour, as last read
+  uint8_t read[3];
+  if (clockModuleRead(0, read, 3)) memcpy(reg, read, 3);   // A failed read keeps the last time
+  uint8_t second = fromDigits(reg[0] & 0x7F);
+  if (second != lastSecond) {
+    lastSecond = second;
     secondStarted = millis();
   }
   unsigned long partOfSecond = millis() - secondStarted;
   if (partOfSecond > 999) partOfSecond = 999;
-  return (now.hour() * 3600UL + now.minute() * 60UL + now.second()) * 1000UL + partOfSecond;
+  return (hourFromRegister(reg[2]) * 3600UL + fromDigits(reg[1]) * 60UL + second) * 1000UL + partOfSecond;
 }
 #endif
 
@@ -828,14 +828,16 @@ void setup() {
   FastLED.setBrightness(BRIGHTNESS_PERCENT * 255 / 100);
 
 #ifdef USE_RTC
-  if (!rtc.begin()) {
+  clockModuleBegin();
+  uint8_t status;
+  if (!clockModuleRead(CLOCK_MODULE_STATUS, &status, 1)) {
     showRtcError();                                // RTC not found
   }
 #ifdef SET_RTC_NOW
-  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));  // Set to the upload time
+  setClockModuleToUploadTime();                    // Set to the upload time
 #else
-  if (rtc.lostPower()) {
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));  // First start: set to the upload time
+  if (status & CLOCK_MODULE_STOPPED) {
+    setClockModuleToUploadTime();                  // First start, or its battery ran out: set to the upload time
   }
 #endif
 #endif

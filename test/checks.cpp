@@ -913,6 +913,39 @@ static void checkNight() {
   check(nightBrightness(127) <= full && nightBrightness(127) >= nightBrightness(255), "in between while it fades");
 }
 
+static void checkClockModule() {
+  printf("The clock module's registers:\n");
+  bool digits = true;
+  for (int n = 0; n < 100; n++) digits = digits && fromDigits(toDigits(n)) == n;
+  check(digits && toDigits(59) == 0x59 && fromDigits(0x23) == 23, "two decimal digits per byte, 0 to 99");
+  check(hourFromRegister(0x00) == 0 && hourFromRegister(0x09) == 9 && hourFromRegister(0x23) == 23,
+        "24 hour clock: 0, 9 and 23");
+  check(hourFromRegister(0x40 | 0x12) == 0 && hourFromRegister(0x40 | 0x07) == 7 &&
+        hourFromRegister(0x40 | 0x20 | 0x12) == 12 && hourFromRegister(0x40 | 0x20 | 0x11) == 23,
+        "12 hour clock: 12 AM = 0, 7 AM, 12 PM = 12, 11 PM = 23");
+
+  uint8_t reg[7];
+  uploadTimeRegisters("Nov 18 2026" "15:42:07", reg);
+  check(reg[0] == 0x07 && reg[1] == 0x42 && reg[2] == 0x15 && reg[4] == 0x18 && reg[5] == 0x11 && reg[6] == 0x26,
+        "the upload time: Nov 18 2026, 15:42:07");
+  uploadTimeRegisters("Feb  3 2031" "00:00:59", reg);
+  check(reg[0] == 0x59 && reg[2] == 0x00 && reg[4] == 0x03 && reg[5] == 0x02 && reg[6] == 0x31,
+        "a one-digit day (the compiler writes \"Feb  3\")");
+  const char *months[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+  bool everyMonth = true;
+  for (int m = 0; m < 12; m++) {
+    char text[21];
+    snprintf(text, sizeof(text), "%s 01 2026" "12:00:00", months[m]);
+    uploadTimeRegisters(text, reg);
+    everyMonth = everyMonth && fromDigits(reg[5]) == m + 1;
+  }
+  check(everyMonth, "every month's name");
+  uploadTimeRegisters(__DATE__ __TIME__, reg);
+  check(fromDigits(reg[5]) >= 1 && fromDigits(reg[5]) <= 12 && fromDigits(reg[4]) >= 1 && fromDigits(reg[4]) <= 31 &&
+        hourFromRegister(reg[2]) <= 23 && fromDigits(reg[1]) <= 59 && fromDigits(reg[0]) <= 59,
+        "this compiler's own __DATE__ and __TIME__");
+}
+
 int main() {
   setup();
 
@@ -974,6 +1007,7 @@ int main() {
   checkScenes();
   checkLights();
   checkNight();
+  checkClockModule();
 
   printf(failures ? "%d check(s) FAILED\n" : "All checks passed\n", failures);
   return failures ? 1 : 0;
