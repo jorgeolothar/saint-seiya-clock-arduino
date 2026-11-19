@@ -24,8 +24,10 @@
 //    { hour, LEDs, on look, off look, cycle ms, repeat, amount },
 //
 //    hour ....... which hour of the scene's cycle the group is on, from
-//                 1. ALWAYS = on all the time. The cycle is as long as
-//                 the highest hour, and starts again after it.
+//                 1. ALWAYS = on all the time. FIRST_HALF_OF_CYCLE and
+//                 SECOND_HALF_OF_CYCLE = on for that half of the cycle.
+//                 The cycle is as long as the highest hour (twice that
+//                 with FILL_AND_EMPTY), and starts again after it.
 //    LEDs ....... how many LEDs the group has
 //    on look .... the look while it is on: any look from SceneLooks.h
 //                 or Flames.h
@@ -62,6 +64,12 @@
 //    ..._LIGHTING .. SPOTLIGHT = only the current hour's groups are on
 //                    FILL = each group stays on from its hour until
 //                           the end of the cycle
+//                    FILL_AND_EMPTY = like the hours ring: each group
+//                           stays on for half the cycle from its hour,
+//                           so they light up one by one, then go out
+//                           one by one. The cycle is twice the highest
+//                           hour: 12 temples light up from midnight to
+//                           noon, and go out from noon to midnight
 //    ..._START ..... when hour 1 starts, as clockTime(hour, minute, 0)
 //
 //  The cycle should fit a day evenly (8 or 12 hours, for example), or

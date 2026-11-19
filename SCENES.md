@@ -19,7 +19,7 @@ With scenes, a short press of the clock's button moves to the next of these, the
 | | What the scenes do |
 |---|---|
 | **Normal** | Each group lights in its hour |
-| **Tour** | Every scene runs through all its hours from hour 1, all in the same minute, and the hours rings go round 12 hours with them. Then back to Normal by itself. Looks keep their own speed |
+| **Tour** | A whole day, from midnight, in 2 minutes: the scenes run through their hours, and the hours rings light up and count down with them. A 12-hour scene runs twice, an 8-hour scene 3 times, and a `FILL_AND_EMPTY` Sanctuary fills and empties once. Then back to Normal by itself. Looks keep their own speed |
 | **Showcase** | Every group of every scene on |
 | **Clock only** | The scenes are off, the rings show the time |
 | **Off** | Everything off |
@@ -68,7 +68,7 @@ Each group is one line in **Scenes.h**, in the order its LEDs are wired: the gro
 
 | Value | What it means |
 |---|---|
-| **Hour** | Which hour of the scene's cycle the group is on, from 1. `ALWAYS` = on all the time. The cycle is as long as the highest hour, then starts again |
+| **Hour** | Which hour of the scene's cycle the group is on, from 1. `ALWAYS` = on all the time. `FIRST_HALF_OF_CYCLE` and `SECOND_HALF_OF_CYCLE` = on for that half of the cycle. The cycle is as long as the highest hour (twice that with `FILL_AND_EMPTY`), then starts again |
 | **LEDs** | How many LEDs the group has. To add an LED, change this number: nothing else moves |
 | **On look** | The look while it's on: any look from `SceneLooks.h` or `Flames.h` |
 | **Off look** | The look while it's off. `OFF` = dark, `CINDERS` = a dim flickering glow |
@@ -104,10 +104,20 @@ This saves writing a new look for each amount, and each look you write takes a l
 | `..._CHIP` | The LED chip: `WS2812B`, or for 5mm LEDs often `PL9823` or `APA106` |
 | `..._ORDER` | `RGB` for 5mm LEDs, `GRB` for LED strips and rings. The four temple scenes come set to `RGB`, the demo to `GRB`. If red and green look swapped, change it |
 | `..._POWER` | The scene's power limit: `{ most milliamps, milliamps per color }`. See [Power limit](#-power-limit) |
-| `..._LIGHTING` | `SPOTLIGHT` lights only the current hour's groups. `FILL` keeps each group on from its hour until the end of the cycle |
+| `..._LIGHTING` | `SPOTLIGHT` lights only the current hour's groups. `FILL` keeps each group on from its hour until the end of the cycle. `FILL_AND_EMPTY` works like the hours ring: see below |
 | `..._START` | When hour 1 starts, as `clockTime(hour, minute, 0)` |
 
 The cycle should fit a day evenly (8 or 12 hours, for example). If it doesn't, it starts again at `..._START` every day.
+
+**`FILL_AND_EMPTY`** mirrors the hours ring: the groups light up one by one, then go out one by one in the same order. Its cycle is twice the highest hour, and each group stays on for half of it. For the Sanctuary, with `SANCTUARY_START` at midnight, the cycle is 24 hours and every temple burns for 12: Aries from midnight to noon, Taurus from 1 AM to 1 PM, through Pisces from 11 AM to 11 PM. Give Athena's temple the hour `SECOND_HALF_OF_CYCLE`, and it lights from noon to midnight, as the temples go out. A group with `FIRST_HALF_OF_CYCLE` lights from midnight to noon instead, while they light up:
+
+```cpp
+const Lighting SANCTUARY_LIGHTING = FILL_AND_EMPTY;
+...
+//  hour                  LEDs  on look    off look  cycle ms  repeat
+  { 12,                   2,    COOL,      OFF,      2000,     REPEAT },   // Pisces
+  { SECOND_HALF_OF_CYCLE, 2,    GOLD_GLOW, OFF,      4000,     REPEAT },   // Athena's temple
+```
 
 `ALL_GROUPS_ON`, at the top of `Scenes.h`, turns every group of every scene on, whatever the hour, like the button's **Showcase** but in every mode. It's handy for checking the wiring. Set it back to `false` when you're done.
 

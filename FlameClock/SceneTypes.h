@@ -15,13 +15,18 @@
 #include "LookTypes.h"
 #include "Power.h"
 
-// ---- As a group's hour: on all the time ----
+// ---- As a group's hour: on all the time, or for half the scene's cycle ----
 const uint8_t ALWAYS = 0;
+const uint8_t FIRST_HALF_OF_CYCLE = 254;
+const uint8_t SECOND_HALF_OF_CYCLE = 255;
 
 // ---- Which groups are on ----
 enum Lighting : uint8_t {
   SPOTLIGHT,      // Only the groups of the current hour (and ALWAYS groups)
-  FILL            // Every group from its hour until the end of the scene's cycle
+  FILL,           // Every group from its hour until the end of the scene's cycle
+  FILL_AND_EMPTY  // The cycle is twice the highest hour, and every group stays
+                  // on for half of it from its hour: they light up one by one,
+                  // then go out one by one in the same order
 };
 
 // ---- What a group's look does once it has played one cycle ----
@@ -109,15 +114,24 @@ template <size_t N> constexpr uint16_t ledsIn(const Group (&groups)[N]) {
 }
 constexpr uint8_t lastHourFrom(const Group *groups, size_t count, uint8_t highest) {
   return count == 0 ? highest
-                    : lastHourFrom(groups + 1, count - 1, groups->hour > highest ? groups->hour : highest);
+                    : lastHourFrom(groups + 1, count - 1,
+                                   groups->hour > highest && groups->hour < FIRST_HALF_OF_CYCLE ? groups->hour : highest);
+}
+// Hours in one cycle: the highest group hour, twice that for FILL_AND_EMPTY
+constexpr uint8_t cycleHours(uint8_t highest, Lighting light) {
+  return light == FILL_AND_EMPTY ? highest * 2 : highest;
+}
+// Does the cycle fit in a day? Hours after the 24th would never come.
+template <size_t N> constexpr bool cycleFitsADay(const Group (&list)[N], Lighting light) {
+  return cycleHours(lastHourFrom(list, N, 1), light) <= 24;
 }
 
 // ---- A scene: a chain of groups on one data pin ----
 struct Scene {
   const InFlash<Group> *groups;   // The groups, in the order they are wired, in program space
   uint8_t groupCount;
-  uint8_t hours;            // Hours in one cycle: the highest group hour
-  Lighting lighting;        // SPOTLIGHT or FILL
+  uint8_t hours;            // Hours in one cycle: the highest group hour (twice that for FILL_AND_EMPTY)
+  Lighting lighting;        // SPOTLIGHT, FILL or FILL_AND_EMPTY
   uint32_t startMs;         // When hour 1 starts, in milliseconds since midnight
   CRGB *leds;               // The scene's LEDs
   uint16_t ledCount;
@@ -128,7 +142,7 @@ struct Scene {
   template <size_t N>
   constexpr Scene(const Group (&list)[N], const InFlash<Group> (&stored)[N], CRGB *sceneLeds,
                   Lighting light, uint32_t start, PowerLimit limit, uint16_t spot)
-    : groups(stored), groupCount(N), hours(lastHourFrom(list, N, 1)), lighting(light),
+    : groups(stored), groupCount(N), hours(cycleHours(lastHourFrom(list, N, 1), light)), lighting(light),
       startMs(start), leds(sceneLeds), ledCount(ledsFrom(list, N)), power(limit), flickerSpot(spot) {
     static_assert(N <= 255, "A scene can hold up to 255 groups");
   }
