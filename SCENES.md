@@ -32,15 +32,15 @@ The **Demo** scene shows every effect at once, so you can see them before settin
 
 | LED | Effect | Look |
 |---|---|---|
-| 1 | `GRADIENT` | `SEA` |
-| 2 | `FLAME` | `FIRE` |
-| 3 | `HEARTBEAT` | `HEART`, with a pause: it beats every 3 seconds |
-| 4 | `PULSES` | `BEACON` |
-| 5 | `FAILING` | `FAULTY_LIGHT` |
-| 6 | `LIGHTNING` | `STORM_SKY`, with its own amount of 60, so it strikes more often |
-| 7 | `BUILDUP` | `FREEZE_RAY`, with a pause: it charges every 7 seconds |
-| 8 | `EXPLOSION` | `FIREBALL`, with a pause: it goes off every 6 seconds |
-| 9 – 12 | `FLOW` | `MOVING_RAINBOW`, traveling along 4 LEDs |
+| 1 | [`GRADIENT`](README.md#️-making-your-own-flame) | `SEA` |
+| 2 | [`FLAME`](README.md#️-making-your-own-flame) | `FIRE` |
+| 3 | [`HEARTBEAT`](#-heartbeat-looks) | `HEART`, with a pause: it beats every 3 seconds |
+| 4 | [`PULSES`](#-pulse-looks) | `BEACON` |
+| 5 | [`FAILING`](#-failing-lights) | `FAULTY_LIGHT` |
+| 6 | [`LIGHTNING`](#️-lightning) | `STORM_SKY`, with its own amount of 60, so it strikes more often |
+| 7 | [`BUILDUP`](#-buildup-looks) | `FREEZE_RAY`, with a pause: it charges every 7 seconds |
+| 8 | [`EXPLOSION`](#-explosions) | `FIREBALL`, with a pause: it goes off every 6 seconds |
+| 9 – 12 | [`FLOW`](#-flowing-looks) | `MOVING_RAINBOW`, traveling along 4 LEDs |
 
 Its lines in **Scenes.h** are also an example of a group's own amount and of `pauseThenRepeat`.
 
@@ -54,6 +54,9 @@ Each scene has a `#define USE_...` line in **Scenes.h**. Remove the two slashes 
 ```
 
 ## 🏗️ Setting up the groups
+
+<details>
+<summary>Show how to set up the groups</summary>
 
 Each group is one line in **Scenes.h**, in the order its LEDs are wired: the group whose LEDs come first on the chain goes first.
 
@@ -88,7 +91,12 @@ Groups can share an hour. A throne can be several groups, each with its own look
 
 This saves writing a new look for each amount, and each look you write takes a little memory, while an amount on a line takes none.
 
+</details>
+
 ## ⚙️ The settings of each scene
+
+<details>
+<summary>Show the settings</summary>
 
 | Setting | What it means |
 |---|---|
@@ -103,27 +111,29 @@ The cycle should fit a day evenly (8 or 12 hours, for example). If it doesn't, i
 
 `ALL_GROUPS_ON`, at the top of `Scenes.h`, turns every group of every scene on, whatever the hour, like the button's **Showcase** but in every mode. It's handy for checking the wiring. Set it back to `false` when you're done.
 
+</details>
+
 ## 🎨 The scene looks
 
-These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too. To see each effect before picking one, switch on the [demo](#-the-demo).
+These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too. To see each effect before picking one, switch on the [demo](#-the-demo). Each effect links to how it works.
 
-| Look | What it is |
-|---|---|
-| `OFF` | Dark. The usual off look |
-| `CINDERS` | A dim red glow that flickers. An off look for a fire temple |
-| `GOLD_GLOW` | A gold glow that swells and settles. For Athena's temple |
-| `UNDERWORLD` | A deep purple flame with a dim violet glow. For Hades' temples |
-| `SEA` | Deep sea blue that drifts into teal and back. For Poseidon's temples |
-| `HEART` | A heartbeat: two quick red beats, resting on a dark red glow. A cycle ms of `1000` = 60 beats a minute |
-| `BEACON` | A burst of 3 short white flashes, then dark. The cycle ms is how often the burst comes |
-| `FAULTY_LIGHT` | A cold white light that goes out for a moment or stutters now and then, like a bad wire |
-| `STORM_SKY` | A dim stormy blue sky, struck now and then by 1 to 4 quick white flashes |
-| `THUNDERSTORM` | Dark clouds drifting along the group, struck now and then by 1 to 4 quick white flashes |
-| `FREEZE_RAY` | A dim teal that charges up to ice blue, throbbing faster and faster, bursts in ice white, and fades back down |
-| `FIREBALL` | A white-hot flash that cools through orange and red to smoldering cinders, crackling and flaring up as it cools |
-| `STROBE` | Quick flashes of cold white. The cycle ms is the rate: `200` = 5 flashes a second. The LEDs are updated every 30 ms, so below `120` some flashes get skipped, though that's hard to see at that speed |
-| `MOVING_RAINBOW` | A rainbow that travels along the group. Give it 6 LEDs or more |
-| `COOLANT` | Pulses of ice blue running through a dim teal tube |
+| Look | Effect | What it is |
+|---|---|---|
+| `OFF` | [`GRADIENT`](README.md#️-making-your-own-flame) | Dark. The usual off look |
+| `CINDERS` | [`FLAME`](README.md#️-making-your-own-flame) | A dim red glow that flickers. An off look for a fire temple |
+| `GOLD_GLOW` | [`FLAME`](README.md#️-making-your-own-flame) | A gold glow that swells and settles. For Athena's temple |
+| `UNDERWORLD` | [`FLAME`](README.md#️-making-your-own-flame) | A deep purple flame with a dim violet glow. For Hades' temples |
+| `SEA` | [`GRADIENT`](README.md#️-making-your-own-flame) | Deep sea blue that drifts into teal and back. For Poseidon's temples |
+| `HEART` | [`HEARTBEAT`](#-heartbeat-looks) | A heartbeat: two quick red beats, resting on a dark red glow. A cycle ms of `1000` = 60 beats a minute |
+| `BEACON` | [`PULSES`](#-pulse-looks) | A burst of 3 short white flashes, then dark. The cycle ms is how often the burst comes |
+| `FAULTY_LIGHT` | [`FAILING`](#-failing-lights) | A cold white light that goes out for a moment or stutters now and then, like a bad wire |
+| `STORM_SKY` | [`LIGHTNING`](#️-lightning) | A dim stormy blue sky, struck now and then by 1 to 4 quick white flashes |
+| `THUNDERSTORM` | [`LIGHTNING`](#️-lightning) | Dark clouds drifting along the group, struck now and then by 1 to 4 quick white flashes |
+| `FREEZE_RAY` | [`BUILDUP`](#-buildup-looks) | A dim teal that charges up to ice blue, throbbing faster and faster, bursts in ice white, and fades back down |
+| `FIREBALL` | [`EXPLOSION`](#-explosions) | A white-hot flash that cools through orange and red to smoldering cinders, crackling and flaring up as it cools |
+| `STROBE` | [`GRADIENT`](README.md#️-making-your-own-flame) | Quick flashes of cold white. The cycle ms is the rate: `200` = 5 flashes a second. The LEDs are updated every 30 ms, so below `120` some flashes get skipped, though that's hard to see at that speed |
+| `MOVING_RAINBOW` | [`FLOW`](#-flowing-looks) | A rainbow that travels along the group. Give it 6 LEDs or more |
+| `COOLANT` | [`FLOW`](#-flowing-looks) | Pulses of ice blue running through a dim teal tube |
 
 Scene looks are written the same way as flames: see [Making your own flame](README.md#️-making-your-own-flame) in the README.
 
@@ -132,6 +142,9 @@ Scene looks are written the same way as flames: see [Making your own flame](READ
 > 🔅 **Dim colors** are dimmed again by `BRIGHTNESS_PERCENT` in PART 3 of `FlameClock.ino` (25% as the sketch comes). At that setting, a dim rainbow color needs about 30% or more to show, for example `rainbowColor(35, 0)`. A color that's mostly one of red, green or blue, like `DARK_RED`, can go dimmer.
 
 ### 💓 Heartbeat looks
+
+<details>
+<summary>Show how a heartbeat works</summary>
 
 A look with the `HEARTBEAT` effect beats twice in each cycle, like a heart, then rests until the cycle ends. Each beat plays the look's color list quickly, and its **last color** is the resting color between heartbeats. The amount is how strong the 2nd beat is, in %:
 
@@ -149,7 +162,12 @@ const Look HEART               = { HEARTBEAT, HEART_COLORS, 60, FIXED_COLORS };
 
 The group's **cycle ms** sets the heart rate: `1000` = 60 beats a minute, `600` = 100. Use `REPEAT`, so it keeps beating. A heartbeat doesn't flicker.
 
+</details>
+
 ### 🔦 Pulse looks
+
+<details>
+<summary>Show how pulses work</summary>
 
 A look with the `PULSES` effect gives a quick burst of short pulses at the start of each cycle, then rests until the cycle ends, like a beacon. Each pulse plays the look's color list quickly, and its **last color** is the resting color. The amount is how many pulses, from 1 to 8:
 
@@ -171,7 +189,12 @@ Each pulse takes 8% of the cycle, with 4% between pulses. With a cycle ms of `20
 
 So a longer cycle ms makes each pulse longer too. Use `REPEAT`, so the bursts keep coming. Pulses don't flicker.
 
+</details>
+
 ### 💡 Failing lights
+
+<details>
+<summary>Show how a failing light works</summary>
 
 A look with the `FAILING` effect plays its color list like `GRADIENT`, so with one color it's a steady light. Now and then it goes out for a moment, or stutters: out, on, out again, all within a fifth of a second. The amount is how often it fails, in %:
 
@@ -190,7 +213,12 @@ const Look FAULTY_LIGHT               = { FAILING, FAULTY_LIGHT_COLORS, 30, FIXE
 
 The failures follow real time, not the group's cycle, so they're the same whatever the cycle ms. With one color, the cycle ms doesn't matter: use `0`. A failing light doesn't flicker. `MODE_FREEZE` and `MODE_COLOR_TEST` show it steady.
 
+</details>
+
 ### ⛈️ Lightning
+
+<details>
+<summary>Show how lightning works</summary>
 
 A look with the `LIGHTNING` effect is a sky, and now and then lightning strikes: 1 to 4 quick flashes. Its **first color** is the flash, and the **other colors** are the sky. The first flash is at full strength, and the others at 40 to 100%. The amount is how often it strikes, in %:
 
@@ -224,7 +252,12 @@ const Look THUNDERSTORM               = { LIGHTNING, THUNDERSTORM_COLORS, 30, FI
 
 The group's **cycle ms** is how long the clouds take to drift along the group. Give drifting clouds a few LEDs in a row; on one LED, the sky just slowly brightens and darkens. With one sky color, or a cycle of `0`, the sky holds still on the last color. It doesn't flicker. `MODE_FREEZE` holds the sky still and stops the strikes, and `MODE_COLOR_TEST` shows the flash color.
 
+</details>
+
 ### 🔋 Buildup looks
+
+<details>
+<summary>Show how a buildup works</summary>
 
 A look with the `BUILDUP` effect charges up through its color list, throbbing faster and faster, then bursts on its **last color** and fades back down to its **first color**, ready to charge again. The amount is how deep the throbs are, in %: `0` = a smooth rise, `100` = each throb goes dark.
 
@@ -246,7 +279,12 @@ The group's **cycle ms** is how long one charge, burst and fade back take: `4000
   { 1,    4,    FREEZE_RAY, OFF,      4000,     pauseThenRepeat(6000) },   // Charges for 4 s, rests for 6 s
 ```
 
+</details>
+
 ### 💥 Explosions
+
+<details>
+<summary>Show how an explosion works</summary>
 
 A look with the `EXPLOSION` effect flashes on its **first color** at once, then cools through the rest of its color list to its **last color**, most of the change early. The amount is how much the embers crackle as they cool, in %: `0` = a smooth fade, `100` = crackling hard.
 
@@ -270,7 +308,12 @@ The group's **cycle ms** is how long it takes from the flash to cold: `3000` = 3
   { 2,    2,    FIREBALL, OFF,      3000,     pauseThenRepeat(5000) },   // Goes off every 8 s
 ```
 
+</details>
+
 ### 🌊 Flowing looks
+
+<details>
+<summary>Show how a flow works</summary>
 
 A look with the `FLOW` effect plays its color list like `GRADIENT`, but each LED of the group is a little behind the one before, so the colors travel along the group, from its first LED to its last. Give it a few LEDs in a row: a 1-LED group just fades.
 
@@ -297,6 +340,8 @@ The group's **cycle ms** is how long the colors take to travel one wave along it
 
 `MOVING_RAINBOW` is a flow through the 8 `SPECTRUM_...` colors in `Colors.h`: FastLED's rainbow, with the mixed hues dimmed so every hue looks as bright as the others. On a clock ring, a flowing look fades like `GRADIENT`: the colors only travel in a scene group.
 
+</details>
+
 ## 🧪 Test modes
 
 The scenes follow the clock's `BEHAVIOR` setting in **PART 2** of `FlameClock.ino`:
@@ -319,6 +364,9 @@ const PowerLimit SANCTUARY_POWER = { 300, 20 };   // most milliamps, milliamps p
 
 ## 🔌 Wiring
 
+<details>
+<summary>Show the wiring</summary>
+
 | Connection | Pin |
 |---|---|
 | DIN — Demo | A3 |
@@ -331,7 +379,12 @@ const PowerLimit SANCTUARY_POWER = { 300, 20 };   // most milliamps, milliamps p
 - Put a 330 Ω resistor in the data line, close to the Arduino pin, to protect the first LED.
 - 5mm through-hole LEDs need a 100 nF capacitor right at the legs of each LED. LED strips and rings have them built in.
 
+</details>
+
 ## 💾 Memory
+
+<details>
+<summary>Show how much memory the scenes take</summary>
 
 The Uno and Nano have 2 KB of memory. Each scene switched on takes some of it for its LEDs. Its list of groups is kept in program space, so that part costs no memory.
 
@@ -344,10 +397,17 @@ The Uno and Nano have 2 KB of memory. Each scene switched on takes some of it fo
 
 If the clock resets by itself or the LEDs show garbage, memory may be running out: switch off a scene you don't need.
 
+</details>
+
 ## 🩺 Troubleshooting
+
+<details>
+<summary>Show fixes for common problems</summary>
 
 - **The sketch doesn't compile: "... shares its pin":** two scenes, or a scene and a ring or the button, are set to the same pin. Only one of them would light, so give each its own pin.
 - **A scene stays dark:** press the button until the scenes come back: **Clock only** and **Off** turn them off. Then check that its `#define USE_...` line has no slashes in front. Press the button for **Showcase** to rule out the hour.
 - **Red and green look swapped:** change the scene's `..._ORDER`: `RGB` for 5mm LEDs, `GRB` for strips and rings. A group showing `SOLID` should look amber, not green.
 - **Colors flicker or the chain shows random colors:** check the 100 nF capacitors, the 330 Ω resistor and that the scene's GND is joined to the Arduino's GND. Try `PL9823` or `APA106` as the scene's `..._CHIP`.
 - **The wrong group lights up:** the lines in `Scenes.h` must be in the order the LEDs are wired, with the right number of LEDs per group.
+
+</details>
