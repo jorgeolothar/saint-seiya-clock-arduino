@@ -923,6 +923,13 @@ static void checkClockModule() {
   check(hourFromRegister(0x40 | 0x12) == 0 && hourFromRegister(0x40 | 0x07) == 7 &&
         hourFromRegister(0x40 | 0x20 | 0x12) == 12 && hourFromRegister(0x40 | 0x20 | 0x11) == 23,
         "12 hour clock: 12 AM = 0, 7 AM, 12 PM = 12, 11 PM = 23");
+  ClockTime t = { 1, 2, 3 };
+  const uint8_t good[3] = { 0x59, 0x07, 0x40 | 0x20 | 0x11 }, garbled[3] = { 0xFF, 0xFF, 0xFF };
+  check(timeFromRegisters(good, t) && t.hour == 23 && t.minute == 7 && t.second == 59 &&
+        !timeFromRegisters(garbled, t) && t.hour == 23 && t.minute == 7 && t.second == 59,
+        "a time is read, and a garbled one (all 0xFF) is ignored");
+  check(CLOCK_CHIP_NUMBER(DS3231) == 1 && CLOCK_CHIP_NUMBER(DS1307) == 2 && CLOCK_CHIP_NUMBER(PCF8523) == 3 &&
+        CLOCK_CHIP_NUMBER(PCF8563) == 4, "the four chip names");
 
   uint8_t reg[7];
   uploadTimeRegisters("Nov 18 2026" "15:42:07", reg);

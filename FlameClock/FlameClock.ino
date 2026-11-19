@@ -54,7 +54,9 @@
 //
 //  LIBRARIES TO INSTALL
 //  In the Arduino IDE: Sketch > Include Library > Manage Libraries
-//    FastLED ....... always needed. The clock module needs no library.
+//    FastLED ....... always needed
+//    RTClib ........ only for a clock module without a DS3231 chip (see
+//                    the clock module notes in PART 4)
 //
 //  FILES
 //  Keep these files together in a folder called FlameClock. The Arduino
@@ -84,7 +86,6 @@
 #include "Power.h"
 #include "Scenes.h"
 #include "SceneDriver.h"
-#include "ClockModule.h"
 
 // =====================================================================
 //  PART 1: YOUR CLOCKS
@@ -124,7 +125,7 @@ const Clock CLOCKS[] = {
 // Turn on by itself when plugged in? true = yes, false = wait for the button
 const bool START_ON = true;
 
-// Do you have a clock module (DS3231 RTC)? It keeps the real time, even
+// Do you have a clock module (RTC)? It keeps the real time, even
 // while the clock is unplugged.
 //   No ... leave the next line as it is. The clock starts at START_TIME
 //          (PART 2) every time it is plugged in.
@@ -264,6 +265,19 @@ const bool REMEMBER_BUTTON_CHOICES = true;
 //
 // #define SET_RTC_NOW
 //
+//  - The chip: its name is printed on the module's biggest chip.
+//    DS3231 (the most common), DS1307, PCF8523 or PCF8563.
+//
+#define RTC_CHIP DS3231
+//
+//  - The DS3231 needs no library: the sketch has its own code for it,
+//    which takes far less program space. The other chips need the
+//    RTClib library (by Adafruit), installed from the Library Manager.
+//    To use RTClib for a DS3231 too (for example on a board that isn't
+//    an Uno or a Nano), remove the two slashes:
+//
+// #define USE_RTCLIB
+//
 //  TROUBLESHOOTING
 //  - Nothing lights up: check the 5V, GND and DIN wires (DIN goes to pin
 //    D6 for ring 1). Press the button, in case the clock is off.
@@ -284,6 +298,8 @@ const bool REMEMBER_BUTTON_CHOICES = true;
 //  PART 5: THE PROGRAM
 //  Nothing below this line needs to be changed.
 // =====================================================================
+
+#include "ClockModule.h"
 
 #define MAX_RINGS 4
 #define LED_PER_RING 12   // The clock face needs exactly 12 LEDs per ring
@@ -424,17 +440,15 @@ unsigned long pressStartTime = 0;           // When the current press started
 uint32_t rtcTimeOfDay() {
   static uint8_t lastSecond = 255;
   static unsigned long secondStarted = 0;
-  static uint8_t reg[3];                           // Second, minute, hour, as last read
-  uint8_t read[3];
-  if (clockModuleRead(0, read, 3)) memcpy(reg, read, 3);   // A failed read keeps the last time
-  uint8_t second = fromDigits(reg[0] & 0x7F);
-  if (second != lastSecond) {
-    lastSecond = second;
+  static ClockTime t = { 0, 0, 0 };
+  clockModuleTime(t);                              // A failed read keeps the last time
+  if (t.second != lastSecond) {
+    lastSecond = t.second;
     secondStarted = millis();
   }
   unsigned long partOfSecond = millis() - secondStarted;
   if (partOfSecond > 999) partOfSecond = 999;
-  return (hourFromRegister(reg[2]) * 3600UL + fromDigits(reg[1]) * 60UL + second) * 1000UL + partOfSecond;
+  return (t.hour * 3600UL + t.minute * 60UL + t.second) * 1000UL + partOfSecond;
 }
 #endif
 
@@ -828,15 +842,13 @@ void setup() {
   FastLED.setBrightness(BRIGHTNESS_PERCENT * 255 / 100);
 
 #ifdef USE_RTC
-  clockModuleBegin();
-  uint8_t status;
-  if (!clockModuleRead(CLOCK_MODULE_STATUS, &status, 1)) {
+  if (!clockModuleBegin()) {
     showRtcError();                                // RTC not found
   }
 #ifdef SET_RTC_NOW
   setClockModuleToUploadTime();                    // Set to the upload time
 #else
-  if (status & CLOCK_MODULE_STOPPED) {
+  if (clockModuleLostTime()) {
     setClockModuleToUploadTime();                  // First start, or its battery ran out: set to the upload time
   }
 #endif
