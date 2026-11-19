@@ -48,6 +48,27 @@ const PowerLimit TEST_POWER = { 1000, 20 };
 const Scene spotlight(SCENE_GROUPS(TEST_GROUPS), testLeds, SPOTLIGHT, clockTime(1, 0, 0), TEST_POWER, 0);
 const Scene fill(SCENE_GROUPS(TEST_GROUPS), testLeds, FILL, clockTime(1, 0, 0), TEST_POWER, 0);
 
+constexpr Group TEMPLE_GROUPS[] = {
+//  hour                  LEDs  on       off  cycle  repeat
+  { 1,                    1,    ON_LOOK, OFF, 1000,  REPEAT },   // Aries
+  { 2,                    1,    ON_LOOK, OFF, 1000,  REPEAT },   // Taurus
+  { 12,                   1,    ON_LOOK, OFF, 1000,  REPEAT },   // Pisces
+  { SECOND_HALF_OF_CYCLE, 1,    ON_LOOK, OFF, 1000,  REPEAT },   // Athena
+  { ALWAYS,               1,    ON_LOOK, OFF, 1000,  REPEAT },
+  { FIRST_HALF_OF_CYCLE,  1,    ON_LOOK, OFF, 1000,  REPEAT },   // The Patriarch
+};
+CRGB templeLeds[ledsIn(TEMPLE_GROUPS)];
+const Scene fillAndEmpty(SCENE_GROUPS(TEMPLE_GROUPS), templeLeds, FILL_AND_EMPTY, clockTime(0, 0, 0), TEST_POWER, 0);
+
+constexpr Group HALF_GROUPS[] = {
+  { 1,                    1,    ON_LOOK, OFF, 1000,  REPEAT },
+  { 4,                    1,    ON_LOOK, OFF, 1000,  REPEAT },
+  { SECOND_HALF_OF_CYCLE, 1,    ON_LOOK, OFF, 1000,  REPEAT },
+  { FIRST_HALF_OF_CYCLE,  1,    ON_LOOK, OFF, 1000,  REPEAT },
+};
+CRGB halfLeds[ledsIn(HALF_GROUPS)];
+const Scene halves(SCENE_GROUPS(HALF_GROUPS), halfLeds, SPOTLIGHT, clockTime(0, 0, 0), TEST_POWER, 0);
+
 constexpr Group EIGHT_GROUPS[] = {
   { 1, 1, ON_LOOK, OFF, 1000, REPEAT }, { 2, 1, ON_LOOK, OFF, 1000, REPEAT }, { 3, 1, ON_LOOK, OFF, 1000, REPEAT },
   { 4, 1, ON_LOOK, OFF, 1000, REPEAT }, { 5, 1, ON_LOOK, OFF, 1000, REPEAT }, { 6, 1, ON_LOOK, OFF, 1000, REPEAT },
@@ -127,6 +148,24 @@ static void checkScenes() {
   check(onAtIs(fill, clockTime(5, 0, 0), "111.1"), "05:00: hours 1 to 3");
   check(onAtIs(fill, clockTime(0, 59, 59), "11111"), "00:59:59: the last hour, all on");
   check(onAtIs(fill, clockTime(1, 0, 0), "1...1"), "01:00: the cycle starts again");
+
+  printf("FILL_AND_EMPTY, from midnight (groups: hours 1, 2, 12, SECOND_HALF_OF_CYCLE, ALWAYS, FIRST_HALF_OF_CYCLE):\n");
+  check(fillAndEmpty.hours == 24, "24 hours a cycle: twice the highest hour, the halves not counted");
+  check(onAtIs(fillAndEmpty, clockTime(0, 30, 0), "1...11"), "00:30: hour 1 lights, FIRST_HALF_OF_CYCLE on");
+  check(onAtIs(fillAndEmpty, clockTime(11, 30, 0), "111.11"), "11:30: all three temples on");
+  check(onAtIs(fillAndEmpty, clockTime(12, 0, 0), ".1111."), "12:00: hour 1 goes out after 12 hours, the halves swap");
+  check(onAtIs(fillAndEmpty, clockTime(13, 0, 0), "..111."), "13:00: then hour 2");
+  check(onAtIs(fillAndEmpty, clockTime(22, 59, 59), "..111."), "22:59:59: hour 12 still on");
+  check(onAtIs(fillAndEmpty, clockTime(23, 0, 0), "...11."), "23:00: hour 12 goes out");
+  check(onAtIs(fillAndEmpty, clockTime(23, 59, 59), "...11.") && onAtIs(fillAndEmpty, clockTime(0, 0, 0), "1...11"),
+        "midnight: the halves swap back, and hour 1 lights again");
+  uint32_t onFor = 0;
+  check(groupOn(fillAndEmpty, TEMPLE_GROUPS[2], clockTime(22, 0, 0), false, onFor) && onFor == 11 * HOUR_MS &&
+        groupOn(fillAndEmpty, TEMPLE_GROUPS[3], clockTime(12, 30, 0), false, onFor) && onFor == 30 * 60000UL &&
+        groupOn(fillAndEmpty, TEMPLE_GROUPS[5], clockTime(2, 0, 0), false, onFor) && onFor == 2 * HOUR_MS,
+        "how long a group has been on: since its hour, or since its half started");
+  check(halves.hours == 4 && onAtIs(halves, clockTime(1, 30, 0), "...1") && onAtIs(halves, clockTime(2, 0, 0), "..1.") &&
+        onAtIs(halves, clockTime(3, 30, 0), ".11."), "the halves with SPOTLIGHT: hours 1 and 2, then 3 and 4, of 4");
 
   printf("8 hours a cycle, from midnight:\n");
   check(onAtIs(eight, clockTime(0, 30, 0), "1......."), "00:30: group 1");
@@ -811,34 +850,30 @@ static void checkLights() {
   check(lights == LIGHTS_TOUR, "a short press: the tour");
   fakeMillis = tourStart;
   uint32_t speed = 1;
-  check(sceneTime(sanctuary, 0, speed) == sanctuary.startMs && speed == 720,
-        "the tour starts every scene at hour 1, looks at their own speed (12 hours in 60 s: 720 times)");
+  check(TOUR_MS == 120000 && sceneTime(sanctuary, 0, speed) == 0 && speed == 720,
+        "the tour starts at midnight, looks at their own speed (a day in 120 s: 720 times)");
   unsigned long tourStarted = tourStart;
-  fakeMillis = tourStarted + 32500;                       // 6.5 of 12 hours, 4.33 of 8
-  setTime(clockTime(0, 30, 0));
+  fakeMillis = tourStarted + 32500;                       // 6.5 hours into the day
+  setTime(clockTime(15, 30, 0));
   updateDisplay();
   uint32_t at = sceneTime(sanctuary, 0, speed);
   check(at / HOUR_MS == 6 && lit(temples, 12, 2) && dark(temples, 0, 2), "32.5 s in: Libra's hour, Aries off");
-  check(sceneTime(*SCENES[2], 0, speed) / HOUR_MS == 4 && speed == 480, "an 8 hour scene: hour 5, 480 times faster");
+  check(sceneTime(*SCENES[2], 0, speed) / HOUR_MS == 6 && speed == 720, "an 8 hour scene: the same clock");
   int pass, position;
   float progress;
-  findFlame(0, ringTime(0, clockTime(0, 30, 0)), pass, position, progress);
+  findFlame(0, ringTime(0, clockTime(15, 30, 0)), pass, position, progress);
   check(CLOCKS[0].unit == SHOW_HOURS && pass == 0 && position == 6 && progress > 0.45f && progress < 0.55f,
-        "the hours ring goes round with it: halfway past 6 o'clock");
+        "the hours ring goes round with it: halfway past 6 o'clock in the morning, whatever the time");
+  fakeMillis = tourStarted + 92500;                       // 18.5 hours into the day
+  findFlame(0, ringTime(0, clockTime(15, 30, 0)), pass, position, progress);
+  check(pass == 1 && position == 6, "the second minute: the afternoon's countdown");
   fakeMillis = tourStarted + TOUR_MS - 1;
-  check(sceneTime(sanctuary, 0, speed) / HOUR_MS == 11, "the last moment: still Pisces' hour");
+  check(sceneTime(sanctuary, 0, speed) / HOUR_MS == 23, "the last moment: still 11 PM");
   loop();
   check(lights == LIGHTS_TOUR, "the tour lasts TOUR_SECONDS");
   fakeMillis = tourStarted + TOUR_MS + FRAME_MS;
   loop();
   check(lights == LIGHTS_NORMAL, "then back to Normal by itself");
-  fakeMillis += 1000;
-  setTime(clockTime(15, 0, 0));
-  lights = LIGHTS_TOUR;
-  startTour();
-  findFlame(0, ringTime(0, clockTime(15, 0, 0)), pass, position, progress);
-  check(pass == 1 && position == 0, "in the afternoon, the hours ring tours from noon");
-  lights = LIGHTS_NORMAL;
   fakeMillis += 1000;
 
   pressButton();                                          // Tour

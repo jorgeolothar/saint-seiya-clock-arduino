@@ -23,10 +23,10 @@
 //                       to the next of these, then back to the first:
 //                         Normal ...... the clock, and the scenes in
 //                                       their hours
-//                         Tour ........ every scene runs through all its
-//                                       hours in a minute, and hours rings
-//                                       through 12 hours with them. Then
-//                                       back to Normal by itself.
+//                         Tour ........ a whole day, midnight to
+//                                       midnight, in 2 minutes: hours
+//                                       rings and every scene. Then back
+//                                       to Normal by itself.
 //                         Showcase .... every group of every scene on
 //                         Clock only .. the scenes off
 //                         Off ......... everything off
@@ -229,8 +229,8 @@ const unsigned long FRAME_MS = 30;
 const unsigned long LONG_PRESS_MS = 1000;     // How long to hold it (1000 = 1 second)
 const unsigned long DEBOUNCE_MS = 40;         // Ignore shorter presses (button noise)
 
-// How long the button's tour takes, in seconds
-const uint16_t TOUR_SECONDS = 60;
+// How long the button's tour of a whole day takes, in seconds
+const uint16_t TOUR_SECONDS = 120;
 
 // Remember the flames and lights picked with the button when unplugged?
 // true = yes, false = no. Uploading a changed sketch always goes back to
@@ -321,22 +321,27 @@ CRGB leds[MAX_RINGS][LED_PER_RING];         // One row of LEDs per ring
 #ifdef USE_DEMO
 CRGB demoLeds[ledsIn(DEMO)];
 const Scene demo(SCENE_GROUPS(DEMO), demoLeds, DEMO_LIGHTING, DEMO_START, DEMO_POWER, 36000);
+static_assert(cycleFitsADay(DEMO, DEMO_LIGHTING), "DEMO (Scenes.h): a cycle can be up to 24 hours. With FILL_AND_EMPTY, the highest hour can be up to 12");
 #endif
 #ifdef USE_SANCTUARY
 CRGB sanctuaryLeds[ledsIn(SANCTUARY)];
 const Scene sanctuary(SCENE_GROUPS(SANCTUARY), sanctuaryLeds, SANCTUARY_LIGHTING, SANCTUARY_START, SANCTUARY_POWER, 4000);
+static_assert(cycleFitsADay(SANCTUARY, SANCTUARY_LIGHTING), "SANCTUARY (Scenes.h): a cycle can be up to 24 hours. With FILL_AND_EMPTY, the highest hour can be up to 12");
 #endif
 #ifdef USE_ASGARD
 CRGB asgardLeds[ledsIn(ASGARD)];
 const Scene asgard(SCENE_GROUPS(ASGARD), asgardLeds, ASGARD_LIGHTING, ASGARD_START, ASGARD_POWER, 12000);
+static_assert(cycleFitsADay(ASGARD, ASGARD_LIGHTING), "ASGARD (Scenes.h): a cycle can be up to 24 hours. With FILL_AND_EMPTY, the highest hour can be up to 12");
 #endif
 #ifdef USE_POSEIDON
 CRGB poseidonLeds[ledsIn(POSEIDON)];
 const Scene poseidon(SCENE_GROUPS(POSEIDON), poseidonLeds, POSEIDON_LIGHTING, POSEIDON_START, POSEIDON_POWER, 20000);
+static_assert(cycleFitsADay(POSEIDON, POSEIDON_LIGHTING), "POSEIDON (Scenes.h): a cycle can be up to 24 hours. With FILL_AND_EMPTY, the highest hour can be up to 12");
 #endif
 #ifdef USE_HADES
 CRGB hadesLeds[ledsIn(HADES)];
 const Scene hades(SCENE_GROUPS(HADES), hadesLeds, HADES_LIGHTING, HADES_START, HADES_POWER, 28000);
+static_assert(cycleFitsADay(HADES, HADES_LIGHTING), "HADES (Scenes.h): a cycle can be up to 24 hours. With FILL_AND_EMPTY, the highest hour can be up to 12");
 #endif
 
 const Scene *const SCENES[] = {
@@ -413,7 +418,6 @@ static_assert(timesUsed(HADES_PIN) == 1, "HADES_PIN (Scenes.h) shares its pin wi
 static_assert(NIGHT_PERCENT <= 100, "NIGHT_PERCENT (PART 1) goes up to 100");
 static_assert(TOUR_SECONDS >= 1, "TOUR_SECONDS (PART 3) must be at least 1");
 const uint32_t TOUR_MS = TOUR_SECONDS * 1000UL;
-const uint32_t HALF_DAY_MS = DAY_MS / 2;
 
 // The two flames each ring shows right now. They start as written in
 // PART 1, and the long press changes them.
@@ -422,7 +426,6 @@ const Look *currentFlame[MAX_RINGS][2];
 Lights lights = LIGHTS_OFF;                 // What the button picked (setup picks the first)
 Lights savedLights = LIGHTS_NORMAL;         // The last Normal, Showcase or Clock only
 unsigned long tourStart = 0;                // When the tour started (millis)
-uint32_t tourFrom = 0;                      // The tour's hours rings start at midnight or noon
 
 uint32_t countedTime = START_TIME % DAY_MS; // Time counted without an RTC (ms since midnight)
 unsigned long lastTick = 0;                 // When countedTime was last moved on
@@ -584,33 +587,33 @@ void drawColorTest(int ring) {
 }
 
 // ---------------------------------------------------------------------
-//  THE TOUR: every scene's whole cycle, and 12 hours, in TOUR_SECONDS
+//  THE TOUR: a whole day, from midnight, in TOUR_SECONDS
 // ---------------------------------------------------------------------
+const uint32_t TOUR_SPEED = DAY_MS / TOUR_MS;   // How much faster than real time (720 for 2 minutes)
+
 void startTour() {
   tourStart = millis();
-  tourFrom = (timeOfDay() >= HALF_DAY_MS) ? HALF_DAY_MS : 0;   // This half of the day
 }
 
-// How far the tour is, from 0 (the start) to 1 (the end)
-float tourDone() {
+// The time of day the tour shows
+uint32_t tourTime() {
   uint32_t into = millis() - tourStart;
-  return into >= TOUR_MS ? 1.0f : (float)into / TOUR_MS;
+  if (into >= TOUR_MS) into = TOUR_MS - 1;      // The last moment, until the tour ends
+  return into * TOUR_SPEED;
 }
 
 // The time a ring shows: during the tour, hours rings go round the
-// 12 hours with the scenes. Minutes and seconds rings keep the time.
+// day with the scenes. Minutes and seconds rings keep the time.
 uint32_t ringTime(int ring, uint32_t ms) {
   if (lights != LIGHTS_TOUR || CLOCKS[ring].unit != SHOW_HOURS) return ms;
-  return tourFrom + (uint32_t)(tourDone() * (HALF_DAY_MS - 1));
+  return tourTime();
 }
 
-// The time a scene shows, and how much faster than real time it runs:
-// during the tour, its whole cycle from hour 1
-uint32_t sceneTime(const Scene &scene, uint32_t ms, uint32_t &speed) {
+// The time a scene shows, and how much faster than real time it runs
+uint32_t sceneTime(const Scene &, uint32_t ms, uint32_t &speed) {
   if (lights != LIGHTS_TOUR) return ms;
-  uint32_t cycleMs = scene.hours * HOUR_MS;
-  speed = cycleMs / TOUR_MS;
-  return scene.startMs + (uint32_t)(tourDone() * (cycleMs - 1));
+  speed = TOUR_SPEED;
+  return tourTime();
 }
 
 // ---------------------------------------------------------------------

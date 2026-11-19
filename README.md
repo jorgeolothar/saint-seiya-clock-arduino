@@ -79,7 +79,7 @@ At about 3:30 in the afternoon:
   | | Rings | Scenes |
   |---|---|---|
   | **Normal** | The time | Each group in its hour |
-  | **Tour** | Hours rings go round 12 hours in a minute | Each scene runs through all its hours in the same minute, from hour 1. Then back to Normal by itself |
+  | **Tour** | Hours rings go round a whole day in 2 minutes, from midnight: they light up, then count down | The scenes run through the same day with them. Then back to Normal by itself |
   | **Showcase** | The time | Every group on |
   | **Clock only** | The time | Off |
   | **Off** | Off | Off |
@@ -87,7 +87,7 @@ At about 3:30 in the afternoon:
 - **Hold for 1 second** → changes the flame you see moving to the **next flame**.
   - Each ring shows the new flame's number like the hours on a clock: flame 3 lights the LEDs at 1, 2 and 3 o'clock.
   - Hold again for the next one.
-- The clock remembers the flame, and Normal, Showcase or Clock only, even when unplugged. The tour's length is `TOUR_SECONDS` in **PART 3** (60 as the sketch comes).
+- The clock remembers the flame, and Normal, Showcase or Clock only, even when unplugged. The tour's length is `TOUR_SECONDS` in **PART 3** (120 as the sketch comes).
 
 </details>
 
@@ -353,7 +353,7 @@ The original sketch comes with the 3D model: [🧩 **Saint Seiya Clock on MakerW
 - **10 built-in flames**, and you can make your own with named colors
 - **Rainbow flames** that color each LED by its place on the ring
 - Holding the button **switches flames**, and the choice is remembered when unplugged
-- With scenes, the button also picks a **tour** of every scene in a minute, a **showcase** of every group, or the **clock only**
+- With scenes, the button also picks a **tour** of a whole day in 2 minutes, a **showcase** of every group, or the **clock only**
 - The LEDs can **dim at night**, between two times you pick
 - Can operate **without an RTC module**, using a built-in software clock
 - **Test modes** for checking colors, timing and the top LED, and a sped-up day for demos

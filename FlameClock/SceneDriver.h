@@ -25,12 +25,26 @@ inline bool groupOn(const Scene &scene, const Group &group, uint32_t ms, bool al
   uint32_t inCycle = sinceStart % cycleMs;
   uint8_t hour = inCycle / HOUR_MS + 1;                       // 1 = the first hour
 
-  bool on = (group.hour == ALWAYS) ||
-            (scene.lighting == SPOTLIGHT ? hour == group.hour : hour >= group.hour);
-  if (on && group.hour != ALWAYS) {
-    onForMs = inCycle - (group.hour - 1) * HOUR_MS;           // Since its hour started
-    return true;
+  if (group.hour == FIRST_HALF_OF_CYCLE) {
+    if (inCycle < cycleMs / 2) {
+      onForMs = inCycle;                                      // Since the cycle started
+      return true;
+    }
+  } else if (group.hour == SECOND_HALF_OF_CYCLE) {
+    if (inCycle >= cycleMs / 2) {
+      onForMs = inCycle - cycleMs / 2;                        // Since the second half started
+      return true;
+    }
+  } else if (group.hour != ALWAYS) {
+    bool on = scene.lighting == SPOTLIGHT ? hour == group.hour
+            : scene.lighting == FILL      ? hour >= group.hour
+            : hour >= group.hour && hour < group.hour + scene.hours / 2;   // FILL_AND_EMPTY: half the cycle
+    if (on) {
+      onForMs = inCycle - (group.hour - 1) * HOUR_MS;         // Since its hour started
+      return true;
+    }
   }
+  bool on = group.hour == ALWAYS;
   onForMs = inCycle;                                          // Since the cycle started
   return on || allOn;
 }
