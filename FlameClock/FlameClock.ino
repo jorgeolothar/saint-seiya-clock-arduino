@@ -48,7 +48,8 @@
 //    Scenes .............. DIN to pin D10 (Sanctuary), D11 (Asgard),
 //                          D12 (Poseidon), A0 (Hades). Each scene on its
 //                          own 5V power supply, with its GND joined to the
-//                          Arduino's GND.
+//                          Arduino's GND, and a 330 ohm resistor at its
+//                          first LED's DIN (see SCENES.md).
 //    Button .............. one leg to pin D2, the other leg to GND
 //    Clock module (RTC) .. optional. SDA to A4, SCL to A5, VCC to 5V, GND to GND
 //

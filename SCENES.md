@@ -386,8 +386,7 @@ const PowerLimit SANCTUARY_POWER = { 300, 20 };   // most milliamps, milliamps p
 | DIN — Hades | A0 |
 
 - Give each scene its own 5V power supply, and **join its GND to the Arduino's GND**.
-- Put a 330 Ω resistor in the data line, close to the Arduino pin, to protect the first LED.
-- 5mm through-hole LEDs need a 100 nF capacitor right at the legs of each LED. LED strips and rings have them built in.
+- Put a 330 Ω resistor in the data line, right at the first LED's DIN. It protects that LED from data arriving before its power, and from the signal bouncing on a long wire. The other LEDs don't need one.
 
 </details>
 
@@ -417,7 +416,7 @@ If the clock resets by itself or the LEDs show garbage, memory may be running ou
 - **The sketch doesn't compile: "... shares its pin":** two scenes, or a scene and a ring or the button, are set to the same pin. Only one of them would light, so give each its own pin.
 - **A scene stays dark:** press the button until the scenes come back: **Clock only** and **Off** turn them off. Then check that its `#define USE_...` line has no slashes in front. Press the button for **Showcase** to rule out the hour.
 - **Red and green look swapped:** change the scene's `..._ORDER`: `RGB` for 5mm LEDs, `GRB` for strips and rings. A group showing `SOLID` should look amber, not green.
-- **Colors flicker or the chain shows random colors:** check the 100 nF capacitors, the 330 Ω resistor and that the scene's GND is joined to the Arduino's GND. Try `PL9823` or `APA106` as the scene's `..._CHIP`.
+- **Colors flicker or the chain shows random colors:** check the 330 Ω resistor and that the scene's GND is joined to the Arduino's GND. Try `PL9823` or `APA106` as the scene's `..._CHIP`.
 - **The wrong group lights up:** the lines in `Scenes.h` must be in the order the LEDs are wired, with the right number of LEDs per group.
 
 </details>
