@@ -7,7 +7,7 @@ The scenes are optional, and all five are switched off in the sketch as it comes
 | Scene | Groups | Cycle | Pin |
 |---|---|---|---|
 | **Demo** | 1 LED for each effect, always on | — | A3 |
-| **Sanctuary** | 12 zodiac temples, one per hour, and Athena's temple, always on | 12 hours, from midnight and from noon: Aries 12–1 o'clock … Pisces 11–12 | D10 |
+| **Sanctuary** | 12 zodiac temples, one LED over each fighter, with a look of its own. Athena's temple is ready for later | 24 hours, like the hours ring: the temples light up one per hour from midnight, then go out in the same order from noon. Each burns for 12 hours | D10 |
 | **Asgard** | 7 temples, one per hour, then Odin's throne in hour 8 | 8 hours, 3 times a day | D11 |
 | **Poseidon** | 7 temples, one per hour, then Poseidon's throne in hour 8 | 8 hours, 3 times a day | D12 |
 | **Hades** | 7 temples, one per hour, then Hades' throne in hour 8 | 8 hours, 3 times a day | A0 |
@@ -144,6 +144,8 @@ These come in **SceneLooks.h**. Any flame from `Flames.h` works in a scene too. 
 | `STROBE` | [`GRADIENT`](README.md#️-making-your-own-flame) | Quick flashes of cold white. The cycle ms is the rate: `200` = 5 flashes a second. The LEDs are updated every 30 ms, so below `120` some flashes get skipped, though that's hard to see at that speed |
 | `MOVING_RAINBOW` | [`FLOW`](#-flowing-looks) | A rainbow that travels along the group. Give it 6 LEDs or more |
 | `COOLANT` | [`FLOW`](#-flowing-looks) | Pulses of ice blue running through a dim teal tube |
+
+**The Sanctuary's looks.** `SceneLooks.h` also holds a look for each fighter in the Sanctuary, from `MU_HAMMER` in Aries to `NEBULA_STORM` in Pisces, and a few for extra LEDs. `Scenes.h` shows which temple uses which. Each look you use takes a little memory, so a scene of your own can reuse them, with [its own amount](#️-setting-up-the-groups) on a line.
 
 Scene looks are written the same way as flames: see [Making your own flame](README.md#️-making-your-own-flame) in the README.
 
@@ -399,10 +401,10 @@ The Uno and Nano have 2 KB of memory. Each scene switched on takes some of it fo
 
 | Switched on | Memory used |
 |---|---|
-| 1 ring, no scenes | 500 bytes (24%) |
-| 1 ring and the demo | 761 bytes (37%) |
-| 1 ring and the Sanctuary | 673 bytes (32%) |
-| 3 rings and all five scenes | 1,415 bytes (69%) |
+| 1 ring, no scenes | 496 bytes (24%) |
+| 1 ring and the demo | 757 bytes (36%) |
+| 1 ring and the Sanctuary | 961 bytes (46%) |
+| 3 rings and all five scenes | 1,689 bytes (82%) |
 
 If the clock resets by itself or the LEDs show garbage, memory may be running out: switch off a scene you don't need.
 

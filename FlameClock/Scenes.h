@@ -113,34 +113,59 @@ constexpr Group DEMO[] = {
 };
 
 // ---------------------------------------------------------------------
-//  SANCTUARY: the 12 zodiac temples, one per hour, and Athena's temple,
-//  always on. Hour 1 starts at midnight (and again at noon): Aries from
-//  12 to 1 o'clock, while the hours ring's flame is on its first LED,
-//  through Pisces from 11 to 12 o'clock.
+//  SANCTUARY: the 12 zodiac temples, lit like the hours ring. In the
+//  morning they light up one per hour, from Aries at midnight to Pisces
+//  at 11; in the afternoon they go out in the same order, so each temple
+//  burns for 12 hours. Athena's temple burns from noon to midnight, as
+//  the temples go out.
+//
+//  Wired from Athena's temple (closest to the Arduino) to Pisces, then
+//  down to Aries, and left to right inside each temple. One LED over
+//  each fighter, each with a look of its own (SceneLooks.h). The lines
+//  with slashes are extra LEDs for later: remove the slashes once the
+//  LED is wired in, in its place on the chain.
 // ---------------------------------------------------------------------
 // #define USE_SANCTUARY
 #define SANCTUARY_PIN   10
 #define SANCTUARY_CHIP  WS2812B
 #define SANCTUARY_ORDER RGB
-const PowerLimit SANCTUARY_POWER = { 300, 20 };
-const Lighting SANCTUARY_LIGHTING = SPOTLIGHT;
+const PowerLimit SANCTUARY_POWER = { 2000, 20 };   // A 5V 10A supply: 2 A covers every LED at full
+const Lighting SANCTUARY_LIGHTING = FILL_AND_EMPTY;
 const uint32_t SANCTUARY_START = clockTime(0, 0, 0);
 
 constexpr Group SANCTUARY[] = {
-//  hour    LEDs  on look    off look  cycle ms  repeat
-  { 1,      2,    COOL,      OFF,      2000,     REPEAT },   // Aries
-  { 2,      2,    COOL,      OFF,      2000,     REPEAT },   // Taurus
-  { 3,      2,    COOL,      OFF,      2000,     REPEAT },   // Gemini
-  { 4,      2,    COOL,      OFF,      2000,     REPEAT },   // Cancer
-  { 5,      2,    COOL,      OFF,      2000,     REPEAT },   // Leo
-  { 6,      2,    COOL,      OFF,      2000,     REPEAT },   // Virgo
-  { 7,      2,    COOL,      OFF,      2000,     REPEAT },   // Libra
-  { 8,      2,    COOL,      OFF,      2000,     REPEAT },   // Scorpio
-  { 9,      2,    COOL,      OFF,      2000,     REPEAT },   // Sagittarius
-  { 10,     2,    COOL,      OFF,      2000,     REPEAT },   // Capricorn
-  { 11,     2,    COOL,      OFF,      2000,     REPEAT },   // Aquarius
-  { 12,     2,    COOL,      OFF,      2000,     REPEAT },   // Pisces
-  { ALWAYS, 2,    GOLD_GLOW, OFF,      4000,     REPEAT },   // Athena's temple
+//  hour                  LEDs  on look             off look  cycle ms  repeat                   amount
+//{ SECOND_HALF_OF_CYCLE, 2,    GOLD_GLOW,          OFF,      4000,     REPEAT },                        // Athena's temple
+  { 12,                   1,    ROYAL_DEMON_ROSE,   OFF,      6000,     REPEAT },                        // Pisces: Aphrodite
+  { 12,                   1,    NEBULA_STORM,       OFF,      8000,     REPEAT },                        // Pisces: Shun's cloud
+//{ 12,                   1,    NEBULA_STORM,       OFF,      8000,     REPEAT },                        // Pisces: a 2nd LED in the cloud
+//{ 11,                   1,    CAMUS_COLD,         OFF,      8000,     REPEAT },                        // Aquarius: over Camus
+  { 11,                   2,    AURORA_CLASH,       OFF,      4000,     REPEAT },                        // Aquarius: the clash, center
+//{ 11,                   1,    FREEZE_RAY,         OFF,      4000,     pauseThenRepeat(4000) },         // Aquarius: over Hyoga
+  { 10,                   1,    DRAGON_COSMOS,      OFF,      2000,     REPEAT },                        // Capricorn: Shiryu
+  { 10,                   1,    EXCALIBUR,          OFF,      800,      pauseThenRepeat(4000) },         // Capricorn: Shura
+//{ 10,                   1,    LAST_DRAGON,        OFF,      5000,     pauseThenRepeat(7000) },         // Capricorn: under the dragon, on the roof
+  { 9,                    1,    GOLD_GLOW,          OFF,      4000,     REPEAT },                        // Sagittarius: Aiolos's wing
+  { 9,                    1,    CANDLE,             OFF,      2000,     REPEAT },                        // Sagittarius: the message
+//{ 9,                    1,    BABY_HEARTBEAT,     OFF,      600,      REPEAT },                        // Sagittarius: Aiolos saving baby Athena, on the roof
+  { 8,                    1,    STORM_SKY,          OFF,      0,        REPEAT,                  100 },  // Scorpio: Hyoga's Diamond Dust
+  { 8,                    1,    ANTARES,            OFF,      4000,     pauseThenRepeat(5000) },         // Scorpio: Milo
+  { 7,                    1,    LIBRA_SWORD,        OFF,      4000,     REPEAT },                        // Libra: Shiryu
+  { 7,                    1,    COOL,               OFF,      2000,     REPEAT,                  10 },   // Libra: the Freezing Coffin
+  { 6,                    1,    PHOENIX_FLAMES,     OFF,      4000,     pauseThenRepeat(4000) },         // Virgo: Ikki and the phoenix
+  { 6,                    1,    SHAKA_SERENITY,     OFF,      8000,     REPEAT },                        // Virgo: Shaka
+  { 5,                    1,    LIGHTNING_PLASMA,   OFF,      0,        REPEAT },                        // Leo: Aioria
+  { 5,                    1,    CASSIOS_FADING,     OFF,      10000,    pauseThenRepeat(3000) },         // Leo: Cassios and Shaina
+  { 4,                    1,    WILL_O_WISP,        OFF,      0,        REPEAT },                        // Cancer: behind, left
+//{ 4,                    1,    GHOST_FLAME,        OFF,      2000,     REPEAT },                        // Cancer: inside the green flame
+  { 4,                    1,    FAINT_HEART,        OFF,      1500,     REPEAT },                        // Cancer: behind, right
+  { 3,                    1,    GALAXIAN_EXPLOSION, OFF,      4000,     pauseThenRepeat(6000) },         // Gemini: Gemini
+//{ 3,                    1,    GALAXIAN_FLASH,     OFF,      4000,     pauseThenRepeat(6000) },         // Gemini: front, aimed at the mirrors
+  { 3,                    1,    NEBULA_STREAM,      OFF,      6000,     REPEAT },                        // Gemini: Shun
+  { 2,                    1,    GREAT_HORN,         OFF,      2500,     pauseThenRepeat(4000) },         // Taurus: Aldebaran
+  { 2,                    1,    PEGASUS_METEORS,    OFF,      1500,     pauseThenRepeat(3500) },         // Taurus: Seiya
+  { 1,                    1,    MU_HAMMER,          OFF,      3000,     REPEAT },                        // Aries: Mu, front
+  { 1,                    1,    FIRE,               OFF,      2000,     REPEAT },                        // Aries: the forge, back
 };
 
 // ---------------------------------------------------------------------
