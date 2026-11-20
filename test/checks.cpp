@@ -211,12 +211,13 @@ static void checkScenes() {
   check(timesUsed(DEMO_PIN) == 1 && timesUsed(RING1_PIN) == 1 && timesUsed(UNUSED_PIN) == MAX_RINGS - NUM_CLOCKS,
         "every pin in use has one job, and the unused ring pins are left out");
   const Scene &sanctuaryScene = *SCENES[1];
-  const Group aries = sanctuaryScene.groups[0].get(), athena = sanctuaryScene.groups[12].get();
-  check(sanctuaryScene.groupCount == 13 && sanctuaryScene.ledCount == 26 && sanctuaryScene.hours == 12,
-        "the Sanctuary: 13 temples, 26 LEDs, 12 hours");
-  check(aries.hour == 1 && aries.ledCount == 2 && aries.on == SANCTUARY[0].on && aries.repeat == REPEAT,
-        "its temples read back out of program space as written");
-  check(athena.hour == ALWAYS && athena.cycleMs == 4000, "down to the last one, Athena's temple");
+  const Group pisces = sanctuaryScene.groups[0].get();
+  const Group aries = sanctuaryScene.groups[sanctuaryScene.groupCount - 1].get();
+  check(sanctuaryScene.groupCount == 23 && sanctuaryScene.ledCount == 24 && sanctuaryScene.hours == 24,
+        "the Sanctuary: 23 groups, 24 LEDs, 24 hours (FILL_AND_EMPTY)");
+  check(pisces.hour == 12 && pisces.ledCount == 1 && pisces.on == SANCTUARY[0].on && pisces.cycleMs == 6000,
+        "its groups read back out of program space as written, from Pisces");
+  check(aries.hour == 1 && aries.on == &FIRE && aries.cycleMs == 2000, "down to the last one, Aries' forge");
 }
 
 static void checkHeartbeat() {
@@ -838,13 +839,13 @@ static void checkLights() {
         "without scenes: on and off, as before");
 
   const Scene &sanctuary = *SCENES[1];
-  const CRGB *temples = sanctuary.leds;                   // Aries 0-1, Taurus 2-3 ... Libra 12-13
+  const CRGB *temples = sanctuary.leds;                   // Pisces 0-1 ... Scorpio 8-9, Libra 10-11 ... Taurus 20-21, Aries 22-23
   fakeMillis = 5000000;
   loop();
   check(lights == LIGHTS_NORMAL, "it starts on Normal (START_ON)");
   setTime(clockTime(0, 30, 0));                           // Aries' hour
   updateDisplay();
-  check(lit(temples, 0, 2) && dark(temples, 2, 2), "Normal: the hour's temple on, the next one off");
+  check(lit(temples, 22, 2) && dark(temples, 0, 22), "Normal: Aries lit, the other temples not yet");
 
   pressButton();
   check(lights == LIGHTS_TOUR, "a short press: the tour");
@@ -857,7 +858,8 @@ static void checkLights() {
   setTime(clockTime(15, 30, 0));
   updateDisplay();
   uint32_t at = sceneTime(sanctuary, 0, speed);
-  check(at / HOUR_MS == 6 && lit(temples, 12, 2) && dark(temples, 0, 2), "32.5 s in: Libra's hour, Aries off");
+  check(at / HOUR_MS == 6 && lit(temples, 10, 2) && lit(temples, 22, 2) && dark(temples, 0, 10),
+        "32.5 s in: Libra lit, Aries still lit, Scorpio and on not yet");
   check(sceneTime(*SCENES[2], 0, speed) / HOUR_MS == 6 && speed == 720, "an 8 hour scene: the same clock");
   int pass, position;
   float progress;

@@ -40,6 +40,27 @@ const CRGB VIOLET      = CRGB(150, 40, 255);
 const CRGB DEEP_PURPLE = CRGB(40, 0, 70);
 const CRGB BLACK       = CRGB(0, 0, 0);        // off. As a last color: no trail
 
+// For the Sanctuary's temples (SceneLooks.h)
+const CRGB PALE_GOLD    = CRGB(200, 150, 50);
+const CRGB WARM_WHITE   = CRGB(255, 210, 140);
+const CRGB DIM_ORANGE   = CRGB(80, 25, 0);
+const CRGB SOFT_PINK    = CRGB(255, 80, 150);
+const CRGB DIM_PINK     = CRGB(80, 0, 50);
+const CRGB ROSE_RED     = CRGB(255, 10, 50);
+const CRGB ROSE_VIOLET  = CRGB(200, 60, 160);
+const CRGB CRIMSON      = CRGB(160, 0, 20);
+const CRGB BLOOD_RED    = CRGB(150, 0, 5);
+const CRGB GENMA_VIOLET = CRGB(50, 0, 40);     // a dim red-violet
+const CRGB GHOST_GREEN  = CRGB(60, 255, 140);
+const CRGB EMERALD      = CRGB(0, 200, 60);
+const CRGB DARK_EMERALD = CRGB(0, 50, 15);
+const CRGB AURORA_GREEN = CRGB(0, 255, 80);
+const CRGB TEAL         = CRGB(0, 160, 140);
+const CRGB ICE_VIOLET   = CRGB(120, 100, 255);
+const CRGB LILAC        = CRGB(180, 120, 255);
+const CRGB DIM_LILAC    = CRGB(40, 20, 60);
+const CRGB STEEL        = CRGB(20, 30, 45);    // a dim blue-gray
+
 // The 8 hues of FastLED's rainbow, for a rainbow written color by color.
 // The mixed ones are dimmed, so on LEDs every hue looks as bright as
 // the others, and fading between neighbors looks even.
